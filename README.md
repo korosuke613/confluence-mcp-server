@@ -14,10 +14,8 @@ through API tokens.
 
 **Content Writing:**
 
-- Create structured task tracking pages
-- Update task progress with automatic logging
-- Create custom Confluence pages
-- Update existing page content
+- Create custom Confluence pages with Confluence Storage Format
+- Update existing page content with proper formatting
 
 **Security & Management:**
 
@@ -85,6 +83,8 @@ Search for content in Confluence.
 - **Note**: Results are automatically filtered to allowed spaces if
   `CONFLUENCE_ALLOWED_SPACES` is set
 
+**API Details:** `GET /wiki/rest/api/content/search` ([ref](https://developer.atlassian.com/cloud/confluence/rest/v1/api-group-content/#api-wiki-rest-api-content-search-get)) - Uses CQL (Confluence Query Language) with text search
+
 ### `confluence_get_page`
 
 Get a specific Confluence page by ID.
@@ -94,6 +94,8 @@ Get a specific Confluence page by ID.
 - **Note**: Access is restricted to pages in allowed spaces if
   `CONFLUENCE_ALLOWED_SPACES` is set
 
+**API Details:** `GET /wiki/api/v2/pages/{pageId}` ([ref](https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/#api-pages-id-get)) - Returns page content in Confluence Storage Format
+
 ### `confluence_get_space`
 
 Get information about a Confluence space.
@@ -101,6 +103,8 @@ Get information about a Confluence space.
 - `spaceKey` (required): Confluence space key
 - **Note**: Access is restricted to allowed spaces if
   `CONFLUENCE_ALLOWED_SPACES` is set
+
+**API Details:** `GET /wiki/api/v2/spaces` ([ref](https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-space/#api-spaces-get)) - Retrieves space metadata and information
 
 ### `confluence_list_pages`
 
@@ -111,31 +115,11 @@ List pages in a Confluence space.
 - **Note**: Access is restricted to allowed spaces if
   `CONFLUENCE_ALLOWED_SPACES` is set
 
+**API Details:** `GET /wiki/api/v2/pages` ([ref](https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/#api-pages-get)) - Lists pages with pagination support
+
 ### Content Writing Tools
 
 **Note**: These tools are disabled when `CONFLUENCE_READ_ONLY=true` is set.
-
-### `confluence_create_task_page`
-
-Create a structured task tracking page with predefined template.
-
-- `spaceKey` (required): Confluence space key
-- `title` (required): Page title
-- `taskDescription` (required): Description of the task or project
-- `objectives` (optional): Array of objectives or goals
-- `progress` (optional): Current progress status (default: "開始")
-- `parentPageId` (optional): Parent page ID
-- **Returns**: Page ID and URL for the created page
-
-### `confluence_update_task_progress`
-
-Update task progress and add findings to an existing task page.
-
-- `pageId` (required): Page ID to update
-- `progress` (required): Updated progress status
-- `newFindings` (optional): Array of new findings or decisions to add
-- `nextSteps` (optional): Array of next steps or action items
-- **Returns**: Updated page ID and version number
 
 ### `confluence_create_page`
 
@@ -143,9 +127,11 @@ Create a custom Confluence page with specified content.
 
 - `spaceKey` (required): Confluence space key
 - `title` (required): Page title
-- `content` (required): Page content in Confluence storage format or HTML
-- `parentPageId` (optional): Parent page ID
+- `content` (required): Page content in Confluence Storage Format. Use proper HTML tags like `<h1>`, `<h2>` for headings, `<ul><li>` for lists, `<strong>` for bold, `<em>` for italic, `<a href="">` for links. For table of contents, use `<ac:structured-macro ac:name="toc" />`. Avoid markdown syntax like `##` or `*` as they will display as plain text.
+- `parentPageId` (optional): Parent page ID. If not specified, the space's homepage will be used as the parent page to avoid creating pages directly under the space root.
 - **Returns**: Page ID and URL for the created page
+
+**API Details:** `POST /wiki/rest/api/content` ([ref](https://developer.atlassian.com/server/confluence/rest/v1000/api-group-content-resource/#api-rest-api-content-post)) - Creates new page with Confluence Storage Format content
 
 ### `confluence_update_page`
 
@@ -153,9 +139,10 @@ Update an existing Confluence page.
 
 - `pageId` (required): Page ID to update
 - `title` (required): Updated page title
-- `content` (required): Updated page content in Confluence storage format or
-  HTML
+- `content` (required): Updated page content in Confluence Storage Format. Use proper HTML tags like `<h1>`, `<h2>` for headings, `<ul><li>` for lists, `<strong>` for bold, `<em>` for italic, `<a href="">` for links. For table of contents, use `<ac:structured-macro ac:name="toc" />`. Avoid markdown syntax like `##` or `*` as they will display as plain text.
 - **Returns**: Updated page ID and version number
+
+**API Details:** `PUT /wiki/rest/api/content/{pageId}` ([ref](https://developer.atlassian.com/server/confluence/rest/v1000/api-group-content-resource/#api-rest-api-content-contentid-put)) - Updates page content with automatic version increment
 
 ## Integration with MCP Clients
 
@@ -208,7 +195,7 @@ When read-only mode is enabled:
   level
 - Only content reading tools are available: `confluence_search`,
   `confluence_get_page`, `confluence_get_space`, `confluence_list_pages`
-- Write tools are completely hidden from MCP clients and will not appear in tool
+- Write tools (`confluence_create_page`, `confluence_update_page`) are completely hidden from MCP clients and will not appear in tool
   lists
 - Attempts to call write operations directly will result in clear error messages
 - Perfect for information retrieval scenarios where data integrity is critical
@@ -256,27 +243,21 @@ deno task debug-auth
 deno task test-api "your-search-term"
 ```
 
-## Task Management Workflow
+## Content Creation Guidelines
 
-This server is designed to help agents track tasks, progress, and decisions in
-Confluence:
+This server provides flexible page creation and management capabilities for Confluence:
 
-1. **Create Task Pages**: Use `confluence_create_task_page` to create structured
-   pages with predefined sections for task description, objectives, progress
-   tracking, findings, and decision logs.
+1. **Custom Page Creation**: Use `confluence_create_page` to create pages with custom content using Confluence Storage Format for proper formatting.
 
-2. **Update Progress**: Use `confluence_update_task_progress` to add new
-   findings, update status, and log next steps with automatic timestamps.
+2. **Page Updates**: Use `confluence_update_page` to modify existing page content while maintaining version control.
 
-3. **Structured Documentation**: All task pages include standardized sections:
-   - Task overview and objectives
-   - Current progress status
-   - Implementation findings and discoveries
-   - Next action items
-   - Decision log with timestamps
+3. **Proper Formatting**: Always use Confluence Storage Format with proper HTML tags:
+   - Use `<h1>`, `<h2>` for headings instead of markdown `#`, `##`
+   - Use `<ul><li>` for unordered lists instead of markdown `*`, `-`
+   - Use `<strong>` for bold and `<em>` for italic
+   - Use `<ac:structured-macro ac:name="toc" />` for table of contents
 
-4. **Agent Integration**: Designed for use with MCP-compatible agents that can
-   automatically document their work, decisions, and progress in Confluence.
+4. **Agent Integration**: Designed for use with MCP-compatible agents that can create and maintain documentation in Confluence with proper formatting.
 
 ## Requirements
 
