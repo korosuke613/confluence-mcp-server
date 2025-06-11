@@ -1,4 +1,5 @@
 name: Release
+run-name: Release ${{ inputs.version }}
 
 on:
   workflow_dispatch:
@@ -25,6 +26,7 @@ jobs:
         id: changelog
         uses: orhun/git-cliff-action@4a4a951bc43fafe41cd2348d181853f52356bee7 # v4.4.2
         with:
+          version: ${{ inputs.version }}
           config: cliff.toml
           args: --verbose --latest --strip header
         env:
@@ -50,7 +52,7 @@ jobs:
       - name: Create GitHub Release
         run: |
           gh release create ${{ inputs.version }} \
-            --title "Release ${{ inputs.version }}" \
+            --title "${{ inputs.version }}" \
             --notes "${{ steps.changelog.outputs.content }}" \
             --latest
         env:
