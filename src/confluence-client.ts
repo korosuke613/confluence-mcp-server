@@ -2,6 +2,7 @@ export interface ConfluenceConfig {
   baseUrl: string;
   email: string;
   apiToken: string;
+  allowedSpaces?: string[]; // 許可されたスペースキーのリスト
 }
 
 export interface ConfluencePage {
@@ -104,6 +105,19 @@ export class ConfluenceClient {
     };
   }
 
+  private isSpaceAllowed(spaceKey: string): boolean {
+    if (!this.config.allowedSpaces || this.config.allowedSpaces.length === 0) {
+      return true; // 制限が設定されていない場合はすべて許可
+    }
+    return this.config.allowedSpaces.includes(spaceKey);
+  }
+
+  private validateSpaceAccess(spaceKey: string): void {
+    if (!this.isSpaceAllowed(spaceKey)) {
+      throw new Error(`アクセスが許可されていないスペースです: ${spaceKey}. 許可されたスペース: ${this.config.allowedSpaces?.join(', ')}`);
+    }
+  }
+
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}, useV1 = false): Promise<T> {
     const baseUrl = useV1 ? this.v1ApiUrl : this.baseApiUrl;
     const url = `${baseUrl}${endpoint}`;
@@ -134,16 +148,33 @@ export class ConfluenceClient {
 
   async search(query: string, limit: number = 10): Promise<ConfluenceSearchResult> {
     const encodedQuery = encodeURIComponent(query);
-    const endpoint = `/content/search?cql=text~"${encodedQuery}"&limit=${limit}&expand=space`;
+    
+    // スペース制限がある場合はCQLクエリに追加
+    let cqlQuery = `text~"${encodedQuery}"`;
+    if (this.config.allowedSpaces && this.config.allowedSpaces.length > 0) {
+      const spaceFilter = this.config.allowedSpaces.map(key => `space="${key}"`).join(' OR ');
+      cqlQuery = `(${spaceFilter}) AND ${cqlQuery}`;
+    }
+    
+    const endpoint = `/content/search?cql=${encodeURIComponent(cqlQuery)}&limit=${limit}&expand=space`;
     return await this.makeRequest<ConfluenceSearchResult>(endpoint, {}, true);
   }
 
   async getPage(pageId: string, _expand: string = "body.storage,version"): Promise<ConfluencePage> {
     const endpoint = `/pages/${pageId}?body-format=storage`;
-    return await this.makeRequest<ConfluencePage>(endpoint);
+    const page = await this.makeRequest<ConfluencePage>(endpoint);
+    
+    // ページが取得できた後、そのページのスペースが許可されているかチェック
+    if (page.space && !this.isSpaceAllowed(page.space.key)) {
+      throw new Error(`アクセスが許可されていないスペースのページです: ${page.space.key}. 許可されたスペース: ${this.config.allowedSpaces?.join(', ')}`);
+    }
+    
+    return page;
   }
 
   async getSpace(spaceKey: string): Promise<ConfluenceSpace> {
+    this.validateSpaceAccess(spaceKey);
+    
     const endpoint = `/spaces?keys=${spaceKey}`;
     const response = await this.makeRequest<{results: ConfluenceSpace[]}>(endpoint);
     if (response.results && response.results.length > 0) {
@@ -153,6 +184,8 @@ export class ConfluenceClient {
   }
 
   async listPages(spaceKey: string, limit: number = 25): Promise<{ results: ConfluencePage[]; size: number; start: number; limit: number }> {
+    this.validateSpaceAccess(spaceKey);
+    
     const endpoint = `/pages?space-key=${spaceKey}&limit=${limit}`;
     return await this.makeRequest<{ results: ConfluencePage[]; size: number; start: number; limit: number }>(endpoint);
   }
@@ -163,6 +196,8 @@ export class ConfluenceClient {
   }
 
   async searchBySpace(spaceKey: string, query: string, limit: number = 10): Promise<ConfluenceSearchResult> {
+    this.validateSpaceAccess(spaceKey);
+    
     const encodedQuery = encodeURIComponent(query);
     const endpoint = `/content/search?cql=space="${spaceKey}" AND text~"${encodedQuery}"&limit=${limit}&expand=space`;
     return await this.makeRequest<ConfluenceSearchResult>(endpoint, {}, true);

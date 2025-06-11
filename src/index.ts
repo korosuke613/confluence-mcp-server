@@ -187,19 +187,34 @@ class ConfluenceMCPServer {
     const baseUrl = Deno.env.get("CONFLUENCE_BASE_URL");
     const email = Deno.env.get("CONFLUENCE_EMAIL");
     const apiToken = Deno.env.get("CONFLUENCE_API_TOKEN");
+    const allowedSpacesEnv = Deno.env.get("CONFLUENCE_ALLOWED_SPACES");
 
     if (!baseUrl || !email || !apiToken) {
       console.error("Missing required environment variables:");
       console.error("- CONFLUENCE_BASE_URL: Your Confluence instance URL");
       console.error("- CONFLUENCE_EMAIL: Your Confluence account email");
       console.error("- CONFLUENCE_API_TOKEN: Your Confluence API token");
+      console.error("Optional:");
+      console.error("- CONFLUENCE_ALLOWED_SPACES: Comma-separated list of allowed space keys");
       Deno.exit(1);
+    }
+
+    // スペース制限の解析
+    const allowedSpaces = allowedSpacesEnv 
+      ? allowedSpacesEnv.split(',').map(s => s.trim()).filter(s => s.length > 0)
+      : undefined;
+
+    if (allowedSpaces && allowedSpaces.length > 0) {
+      console.error(`Space access restricted to: ${allowedSpaces.join(', ')}`);
+    } else {
+      console.error("No space restrictions applied");
     }
 
     this.confluenceClient = new ConfluenceClient({
       baseUrl,
       email,
       apiToken,
+      allowedSpaces,
     });
   }
 
