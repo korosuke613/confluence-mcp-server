@@ -1,0 +1,170 @@
+export interface ConfluenceConfig {
+  baseUrl: string;
+  email: string;
+  apiToken: string;
+}
+
+export interface ConfluencePage {
+  id: string;
+  type: string;
+  status: string;
+  title: string;
+  space: {
+    id: number;
+    key: string;
+    name: string;
+    type: string;
+  };
+  body?: {
+    storage?: {
+      value: string;
+      representation: string;
+    };
+  };
+  version?: {
+    number: number;
+    when: string;
+    by: {
+      type: string;
+      displayName: string;
+      userKey: string;
+    };
+  };
+  _links: {
+    webui: string;
+    edit: string;
+    tinyui: string;
+    self: string;
+  };
+}
+
+export interface ConfluenceSpace {
+  id: number;
+  key: string;
+  name: string;
+  type: string;
+  status: string;
+  description: {
+    plain: {
+      value: string;
+      representation: string;
+    };
+  };
+  homepage: {
+    id: string;
+    type: string;
+    status: string;
+    title: string;
+  };
+  _links: {
+    webui: string;
+    self: string;
+  };
+}
+
+export interface ConfluenceSearchResult {
+  results: Array<{
+    id: string;
+    type: string;
+    status: string;
+    title: string;
+    space: {
+      id: number;
+      key: string;
+      name: string;
+      type: string;
+    };
+    excerpt: string;
+    url: string;
+    lastModified: string;
+  }>;
+  start: number;
+  limit: number;
+  size: number;
+  totalSize: number;
+}
+
+export class ConfluenceClient {
+  public config: ConfluenceConfig;
+  private baseApiUrl: string;
+  private v1ApiUrl: string;
+
+  constructor(config: ConfluenceConfig) {
+    this.config = config;
+    this.baseApiUrl = `${config.baseUrl.replace(/\/$/, '')}/wiki/api/v2`;
+    this.v1ApiUrl = `${config.baseUrl.replace(/\/$/, '')}/wiki/rest/api`;
+  }
+
+  getAuthHeaders(): Record<string, string> {
+    const credentials = btoa(`${this.config.email}:${this.config.apiToken}`);
+    return {
+      'Authorization': `Basic ${credentials}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+  }
+
+  private async makeRequest<T>(endpoint: string, options: RequestInit = {}, useV1 = false): Promise<T> {
+    const baseUrl = useV1 ? this.v1ApiUrl : this.baseApiUrl;
+    const url = `${baseUrl}${endpoint}`;
+    const headers = {
+      ...this.getAuthHeaders(),
+      ...options.headers,
+    };
+
+    console.error(`Making request to: ${url}`);
+    console.error(`Base URL: ${this.config.baseUrl}`);
+    console.error(`Email: ${this.config.email}`);
+    console.error(`API Token length: ${this.config.apiToken ? this.config.apiToken.length : 'undefined'}`);
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Response status: ${response.status}`);
+      console.error(`Response headers:`, response.headers);
+      throw new Error(`Confluence API error (${response.status}): ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  async search(query: string, limit: number = 10): Promise<ConfluenceSearchResult> {
+    const encodedQuery = encodeURIComponent(query);
+    const endpoint = `/content/search?cql=text~"${encodedQuery}"&limit=${limit}&expand=space`;
+    return await this.makeRequest<ConfluenceSearchResult>(endpoint, {}, true);
+  }
+
+  async getPage(pageId: string, _expand: string = "body.storage,version"): Promise<ConfluencePage> {
+    const endpoint = `/pages/${pageId}?body-format=storage`;
+    return await this.makeRequest<ConfluencePage>(endpoint);
+  }
+
+  async getSpace(spaceKey: string): Promise<ConfluenceSpace> {
+    const endpoint = `/spaces?keys=${spaceKey}`;
+    const response = await this.makeRequest<{results: ConfluenceSpace[]}>(endpoint);
+    if (response.results && response.results.length > 0) {
+      return response.results[0];
+    }
+    throw new Error(`Space with key ${spaceKey} not found`);
+  }
+
+  async listPages(spaceKey: string, limit: number = 25): Promise<{ results: ConfluencePage[]; size: number; start: number; limit: number }> {
+    const endpoint = `/pages?space-key=${spaceKey}&limit=${limit}`;
+    return await this.makeRequest<{ results: ConfluencePage[]; size: number; start: number; limit: number }>(endpoint);
+  }
+
+  async getPageContent(pageId: string): Promise<string> {
+    const page = await this.getPage(pageId, "body.storage");
+    return page.body?.storage?.value || "";
+  }
+
+  async searchBySpace(spaceKey: string, query: string, limit: number = 10): Promise<ConfluenceSearchResult> {
+    const encodedQuery = encodeURIComponent(query);
+    const endpoint = `/content/search?cql=space="${spaceKey}" AND text~"${encodedQuery}"&limit=${limit}&expand=space`;
+    return await this.makeRequest<ConfluenceSearchResult>(endpoint, {}, true);
+  }
+}

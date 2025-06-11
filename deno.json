@@ -1,0 +1,21 @@
+{
+  "name": "confluence-mcp-server",
+  "version": "1.0.0",
+  "exports": "./src/index.ts",
+  "tasks": {
+    "start": "deno run --allow-net --allow-env --allow-read src/index.ts",
+    "dev": "deno run --allow-net --allow-env --allow-read --watch src/index.ts",
+    "test-api": "deno run --allow-net --allow-env --allow-read test-api.ts",
+    "debug-auth": "deno run --allow-net --allow-env --allow-read debug-auth.ts"
+  },
+  "imports": {
+    "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.0.0"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  }
+}
