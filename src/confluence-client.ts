@@ -195,6 +195,62 @@ export class ConfluenceClient {
     return page.body?.storage?.value || "";
   }
 
+  async createPage(spaceKey: string, title: string, content: string, parentPageId?: string): Promise<ConfluencePage> {
+    this.validateSpaceAccess(spaceKey);
+    
+    const body = {
+      type: "page",
+      title: title,
+      space: {
+        key: spaceKey
+      },
+      body: {
+        storage: {
+          value: content,
+          representation: "storage"
+        }
+      },
+      ...(parentPageId && {
+        ancestors: [{ id: parentPageId }]
+      })
+    };
+
+    const endpoint = "/content";
+    return await this.makeRequest<ConfluencePage>(endpoint, {
+      method: "POST",
+      body: JSON.stringify(body)
+    }, true); // v1 APIを使用
+  }
+
+  async updatePage(pageId: string, title: string, content: string, versionNumber?: number): Promise<ConfluencePage> {
+    // 既存ページの情報を取得してスペースチェック
+    const existingPage = await this.getPage(pageId, "version");
+    
+    if (!versionNumber && existingPage.version) {
+      versionNumber = existingPage.version.number + 1;
+    }
+
+    const body = {
+      type: "page",
+      title: title,
+      body: {
+        storage: {
+          value: content,
+          representation: "storage"
+        }
+      },
+      version: {
+        number: versionNumber || 1
+      }
+    };
+
+    const endpoint = `/content/${pageId}`;
+    return await this.makeRequest<ConfluencePage>(endpoint, {
+      method: "PUT",
+      body: JSON.stringify(body)
+    }, true); // v1 APIを使用
+  }
+
   async searchBySpace(spaceKey: string, query: string, limit: number = 10): Promise<ConfluenceSearchResult> {
     this.validateSpaceAccess(spaceKey);
     

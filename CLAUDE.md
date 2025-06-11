@@ -4,8 +4,8 @@
 
 ## 重要ルール
 
-- このプロジェクトでは常に日本語で回答してください。
-- 新しいルール追加のプロセス
+- **重要**: このプロジェクトでは常に日本語で回答してください。
+- **重要**: 新しいルールを CLAUDE.md に追加
   - ユーザーから今回限りではなく常に対応が必要だと思われる指示を受けた場合、以下の手順に従ってください。
     1. ユーザーからの指示を確認し、必要なルールを特定します。
     2. `CLAUDE.md` ファイルに新しいルールを追加します。
@@ -30,11 +30,19 @@ deno run --allow-net --allow-env --allow-read test.ts
 
 ## アーキテクチャ概要
 
-これは4つの主要ツールを通じてConfluence統合を提供するModel Context Protocol (MCP) サーバーです：
+これは8つの主要ツールを通じてConfluence統合を提供するModel Context Protocol (MCP) サーバーです：
+
+**読み取り機能:**
 - `confluence_search`: Confluence全体でのコンテンツ検索
 - `confluence_get_page`: IDによる特定ページの取得
 - `confluence_get_space`: スペース情報の取得
 - `confluence_list_pages`: スペース内のページ一覧
+
+**書き込み機能:**
+- `confluence_create_task_page`: タスク管理用の構造化ページ作成
+- `confluence_update_task_progress`: タスク進捗・発見事項の更新
+- `confluence_create_page`: 汎用ページ作成
+- `confluence_update_page`: 汎用ページ更新
 
 ### コアコンポーネント
 
@@ -46,16 +54,23 @@ deno run --allow-net --allow-env --allow-read test.ts
 
 **ConfluenceClient** (`src/confluence-client.ts:87`): HTTP クライアントラッパー
 - メール/APIトークンを使用したBasic認証の処理
-- Confluence Cloud への REST API 呼び出し
+- Confluence Cloud への REST API 呼び出し（v1/v2混合）
 - すべてのConfluenceレスポンスの型付きインターフェースを提供
 - 検索操作にCQL（Confluence Query Language）を使用
+- ページ作成・更新機能（Confluence Storage Format対応）
+- スペースアクセス制限機能
 
 ### 環境設定
 
-サーバーは3つの環境変数が必要です：
+サーバーは以下の環境変数を使用します：
+
+**必須:**
 - `CONFLUENCE_BASE_URL`: Confluenceインスタンスの URL
 - `CONFLUENCE_EMAIL`: 認証用のユーザーメール
 - `CONFLUENCE_API_TOKEN`: AtlassianアカウントのAPIトークン
+
+**オプション:**
+- `CONFLUENCE_ALLOWED_SPACES`: アクセス許可スペース（カンマ区切り）
 
 ### MCP統合
 

@@ -4,13 +4,24 @@ A Model Context Protocol (MCP) server that provides access to Confluence content
 
 ## Features
 
-- Search Confluence content
-- Retrieve specific pages by ID
-- Get space information
-- List pages in a space
+**Content Reading:**
+- Search Confluence content with CQL support
+- Retrieve specific pages by ID with content
+- Get space information and metadata
+- List pages in a space with pagination
+
+**Content Writing:**
+- Create structured task tracking pages
+- Update task progress with automatic logging
+- Create custom Confluence pages
+- Update existing page content
+
+**Security & Management:**
 - Space access restriction for enhanced security
+- Confluence Storage Format support
+- Automatic version management
 - TypeScript support with Deno runtime
-- REST API v2 with v1 fallback for search
+- REST API v2 with v1 fallback for compatibility
 
 ## Setup
 
@@ -51,6 +62,8 @@ deno task dev
 
 This server provides the following MCP tools:
 
+### Content Reading Tools
+
 ### `confluence_search`
 Search for content in Confluence.
 - `query` (required): Search query string
@@ -73,6 +86,41 @@ List pages in a Confluence space.
 - `spaceKey` (required): Confluence space key
 - `limit` (optional): Maximum number of pages (default: 25)
 - **Note**: Access is restricted to allowed spaces if `CONFLUENCE_ALLOWED_SPACES` is set
+
+### Content Writing Tools
+
+### `confluence_create_task_page`
+Create a structured task tracking page with predefined template.
+- `spaceKey` (required): Confluence space key
+- `title` (required): Page title
+- `taskDescription` (required): Description of the task or project
+- `objectives` (optional): Array of objectives or goals
+- `progress` (optional): Current progress status (default: "開始")
+- `parentPageId` (optional): Parent page ID
+- **Returns**: Page ID and URL for the created page
+
+### `confluence_update_task_progress`
+Update task progress and add findings to an existing task page.
+- `pageId` (required): Page ID to update
+- `progress` (required): Updated progress status
+- `newFindings` (optional): Array of new findings or decisions to add
+- `nextSteps` (optional): Array of next steps or action items
+- **Returns**: Updated page ID and version number
+
+### `confluence_create_page`
+Create a custom Confluence page with specified content.
+- `spaceKey` (required): Confluence space key
+- `title` (required): Page title
+- `content` (required): Page content in Confluence storage format or HTML
+- `parentPageId` (optional): Parent page ID
+- **Returns**: Page ID and URL for the created page
+
+### `confluence_update_page`
+Update an existing Confluence page.
+- `pageId` (required): Page ID to update
+- `title` (required): Updated page title
+- `content` (required): Updated page content in Confluence storage format or HTML
+- **Returns**: Updated page ID and version number
 
 ## Integration with MCP Clients
 
@@ -137,6 +185,23 @@ deno task debug-auth
 # Test with specific search query
 deno task test-api "your-search-term"
 ```
+
+## Task Management Workflow
+
+This server is designed to help agents track tasks, progress, and decisions in Confluence:
+
+1. **Create Task Pages**: Use `confluence_create_task_page` to create structured pages with predefined sections for task description, objectives, progress tracking, findings, and decision logs.
+
+2. **Update Progress**: Use `confluence_update_task_progress` to add new findings, update status, and log next steps with automatic timestamps.
+
+3. **Structured Documentation**: All task pages include standardized sections:
+   - Task overview and objectives
+   - Current progress status
+   - Implementation findings and discoveries
+   - Next action items
+   - Decision log with timestamps
+
+4. **Agent Integration**: Designed for use with MCP-compatible agents that can automatically document their work, decisions, and progress in Confluence.
 
 ## Requirements
 
