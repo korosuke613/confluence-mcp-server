@@ -129,7 +129,7 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
   }
 
   private setupHandlers() {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+    this.server.setRequestHandler(ListToolsRequestSchema, () => {
       return {
         tools: [
           {
@@ -332,7 +332,7 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
 
       try {
         switch (name) {
-          case "confluence_search":
+          case "confluence_search": {
             const searchResults = await this.confluenceClient.search(
               args.query as string, 
               (args.limit as number) || 10
@@ -345,8 +345,9 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
               ],
             };
+          }
 
-          case "confluence_get_page":
+          case "confluence_get_page": {
             const page = await this.confluenceClient.getPage(
               args.pageId as string, 
               (args.expand as string) || "body.storage,version"
@@ -359,8 +360,9 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
               ],
             };
+          }
 
-          case "confluence_get_space":
+          case "confluence_get_space": {
             const space = await this.confluenceClient.getSpace(args.spaceKey as string);
             return {
               content: [
@@ -370,6 +372,7 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
               ],
             };
+          }
 
           case "confluence_list_pages": {
             const pages = await this.confluenceClient.listPages(

@@ -13,7 +13,7 @@ const testConfig = {
 };
 
 try {
-  const client = new ConfluenceClient(testConfig);
+  new ConfluenceClient(testConfig);
   console.log("✓ ConfluenceClient instantiated successfully");
 } catch (error) {
   console.error("✗ Failed to instantiate ConfluenceClient:", error);

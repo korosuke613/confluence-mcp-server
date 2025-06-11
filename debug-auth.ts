@@ -49,7 +49,8 @@ async function testEndpoint(url: string, authHeader: string, description: string
       return false;
     }
   } catch (error) {
-    console.log(`   ❌ 接続エラー: ${error.message}`);
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`   ❌ 接続エラー: ${message}`);
     return false;
   }
 }
@@ -112,7 +113,7 @@ async function diagnoseAuthentication() {
     console.log("\n✅ すべてのテストが期待通りの結果でした。認証設定は正常です。");
   } else {
     const successfulEndpoints = endpoints.filter(e => e.shouldSucceed);
-    const failedSuccessTests = successfulEndpoints.filter(e => {
+    const failedSuccessTests = successfulEndpoints.filter(_e => {
       // この部分は実際のテスト結果が必要なので、ロジックを簡略化
       return false; // 実際の実装では適切に判定
     });

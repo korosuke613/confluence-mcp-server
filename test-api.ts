@@ -35,7 +35,8 @@ async function testAuthentication(client: ConfluenceClient) {
     
     return true;
   } catch (error) {
-    console.error("❌ 認証に失敗しました:", error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("❌ 認証に失敗しました:", message);
     return false;
   }
 }
@@ -61,7 +62,8 @@ async function testConnection(client: ConfluenceClient) {
       return false;
     }
   } catch (error) {
-    console.error("❌ 接続エラー:", error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("❌ 接続エラー:", message);
     return false;
   }
 }
@@ -84,7 +86,8 @@ async function testSearch(client: ConfluenceClient, query: string) {
     }
     return true;
   } catch (error) {
-    console.error("❌ 検索エラー:", error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("❌ 検索エラー:", message);
     return false;
   }
 }
