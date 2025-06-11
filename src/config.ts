@@ -10,8 +10,12 @@ export class ConfigManager {
     const apiToken = Deno.env.get("CONFLUENCE_API_TOKEN");
     const allowedSpacesEnv = Deno.env.get("CONFLUENCE_ALLOWED_SPACES");
     const readOnlyEnv = Deno.env.get("CONFLUENCE_READ_ONLY");
-    const allowedReadParentPagesEnv = Deno.env.get("CONFLUENCE_ALLOWED_PARENT_READ_PAGES");
-    const allowedWriteParentPagesEnv = Deno.env.get("CONFLUENCE_ALLOWED_PARENT_WRITE_PAGES");
+    const allowedReadParentPagesEnv = Deno.env.get(
+      "CONFLUENCE_ALLOWED_PARENT_READ_PAGES",
+    );
+    const allowedWriteParentPagesEnv = Deno.env.get(
+      "CONFLUENCE_ALLOWED_PARENT_WRITE_PAGES",
+    );
 
     if (!baseUrl || !email || !apiToken) {
       throw new Error(
@@ -72,14 +76,23 @@ export class ConfigManager {
       console.error("   スペース制限: なし");
     }
 
-    if (config.allowedReadParentPages && config.allowedReadParentPages.length > 0) {
-      console.error(`   読み取り許可親ページ: ${config.allowedReadParentPages.join(", ")}`);
+    if (
+      config.allowedReadParentPages && config.allowedReadParentPages.length > 0
+    ) {
+      console.error(
+        `   読み取り許可親ページ: ${config.allowedReadParentPages.join(", ")}`,
+      );
     } else {
       console.error("   読み取り親ページ制限: なし");
     }
 
-    if (config.allowedWriteParentPages && config.allowedWriteParentPages.length > 0) {
-      console.error(`   書き込み許可親ページ: ${config.allowedWriteParentPages.join(", ")}`);
+    if (
+      config.allowedWriteParentPages &&
+      config.allowedWriteParentPages.length > 0
+    ) {
+      console.error(
+        `   書き込み許可親ページ: ${config.allowedWriteParentPages.join(", ")}`,
+      );
     } else {
       console.error("   書き込み親ページ制限: なし");
     }

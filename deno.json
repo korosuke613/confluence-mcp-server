@@ -7,7 +7,7 @@
     "dev": "deno run --allow-net --allow-env --allow-read --watch src/index.ts",
     "test-api": "deno run --allow-net --allow-env --allow-read test-api.ts",
     "debug-auth": "deno run --allow-net --allow-env --allow-read debug-auth.ts",
-    "preCommit": "deno lint && deno check src/index.ts && deno fmt"
+    "preCommit": "deno lint && deno check src/index.ts && deno fmt ./src"
   },
   "imports": {
     "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.0.0"

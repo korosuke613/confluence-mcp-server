@@ -51,7 +51,10 @@ export class ConfluenceAPIClient {
    * @param allowedPages 許可されたページIDのリスト
    * @returns アクセスが許可されているかどうか
    */
-  private async isPageAccessAllowed(pageId: string, allowedPages?: string[]): Promise<boolean> {
+  private async isPageAccessAllowed(
+    pageId: string,
+    allowedPages?: string[],
+  ): Promise<boolean> {
     if (!allowedPages || allowedPages.length === 0) {
       return true; // 制限が設定されていない場合はすべて許可
     }
@@ -63,7 +66,7 @@ export class ConfluenceAPIClient {
 
     // キャッシュから祖先情報を取得
     let ancestorIds: string[] | undefined = this.pageAncestorsCache.get(pageId);
-    
+
     if (!ancestorIds) {
       try {
         // ページの祖先を取得
@@ -71,11 +74,13 @@ export class ConfluenceAPIClient {
           `${this.v2ApiUrl}/pages/${pageId}?expand=ancestors`,
           {
             headers: this.getAuthHeaders(),
-          }
+          },
         );
 
         if (!response.ok) {
-          console.error(`Failed to fetch page ancestors: ${response.statusText}`);
+          console.error(
+            `Failed to fetch page ancestors: ${response.statusText}`,
+          );
           return false;
         }
 
@@ -83,7 +88,9 @@ export class ConfluenceAPIClient {
         const ancestors = pageData.ancestors || [];
 
         // 祖先のIDリストを抽出してキャッシュに保存
-        const ancestorIdsFromApi: string[] = ancestors.map((ancestor: { id: string }) => ancestor.id);
+        const ancestorIdsFromApi: string[] = ancestors.map((
+          ancestor: { id: string },
+        ) => ancestor.id);
         ancestorIds = ancestorIdsFromApi;
         this.pageAncestorsCache.set(pageId, ancestorIdsFromApi);
       } catch (error) {
@@ -110,12 +117,15 @@ export class ConfluenceAPIClient {
    * @throws エラー: アクセスが許可されていないページの場合
    */
   async validatePageReadAccess(pageId: string): Promise<void> {
-    const allowed = await this.isPageAccessAllowed(pageId, this.config.allowedReadParentPages);
+    const allowed = await this.isPageAccessAllowed(
+      pageId,
+      this.config.allowedReadParentPages,
+    );
     if (!allowed) {
       throw new Error(
         `読み取りアクセスが許可されていないページです: ${pageId}. 許可されたページ: ${
           this.config.allowedReadParentPages?.join(", ") || "すべて"
-        }`
+        }`,
       );
     }
   }
@@ -126,12 +136,15 @@ export class ConfluenceAPIClient {
    * @throws エラー: アクセスが許可されていないページの場合
    */
   async validatePageWriteAccess(pageId: string): Promise<void> {
-    const allowed = await this.isPageAccessAllowed(pageId, this.config.allowedWriteParentPages);
+    const allowed = await this.isPageAccessAllowed(
+      pageId,
+      this.config.allowedWriteParentPages,
+    );
     if (!allowed) {
       throw new Error(
         `書き込みアクセスが許可されていないページです: ${pageId}. 許可されたページ: ${
           this.config.allowedWriteParentPages?.join(", ") || "すべて"
-        }`
+        }`,
       );
     }
   }
@@ -209,7 +222,10 @@ export class ConfluenceAPIClient {
       ).join(" OR ");
       cqlQuery = `(${spaceFilter}) AND ${cqlQuery}`;
     }
-    if (this.config.allowedReadParentPages && this.config.allowedReadParentPages.length > 0) {
+    if (
+      this.config.allowedReadParentPages &&
+      this.config.allowedReadParentPages.length > 0
+    ) {
       const parentFilter = this.config.allowedReadParentPages.map((id) =>
         `ancestor=${id}`
       ).join(" OR ");
@@ -333,7 +349,7 @@ export class ConfluenceAPIClient {
 
     // ページ作成後、キャッシュをクリア（親子関係が変わる可能性があるため）
     this.clearPageAncestorsCache();
-    
+
     return result;
   }
 
@@ -374,7 +390,7 @@ export class ConfluenceAPIClient {
 
     // ページ更新後、該当ページのキャッシュをクリア
     this.clearPageAncestorsCache(pageId);
-    
+
     return result;
   }
 

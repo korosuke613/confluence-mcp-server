@@ -26,4 +26,3 @@
 - Update README with API details and align with actual implementation
 - Merge pull request #7 from korosuke613/docs/update-readme-with-api-details
 - Merge pull request #8 from korosuke613/feat/release-automation
-
