@@ -1,6 +1,7 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 このファイルは、このリポジトリでコードを扱う際のClaude Code (claude.ai/code)
 への指針を提供します。
@@ -31,16 +32,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - 進捗ページは「進捗 [Confluence MCP Server]」(ID: 262145) の下に配置
   - 進捗ページが存在する場合は更新。存在しない場合は新規作成
-- 日付別のページタイトル形式: `<YYYY>-<MM>-<DD>: <タスク名> [Confluence MCP Server]`
+- 日付別のページタイトル形式:
+  `<YYYY>-<MM>-<DD>: <タスク名> [Confluence MCP Server]`
   - `<` と `>` はプレースホルダーである。実際の値に置き換えること
 - 進捗ページには以下の情報を含めること:
   - 実施したタスクの概要
   - 実施したタスクによって何が達成されたか
-  - 実施したタスクの変更点について、なぜそれを行なったか
-  - 次のステップや課題
+  - claude code 利用者とのやりとり（意思決定）の変遷を箇条書きする
   - プルリクエストへのリンク
 
 **テンプレート**
+
 ```markdown
 /toc
 
@@ -50,10 +52,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 何が達成されたか
 
-## 変更点と理由
-
-## 次のステップや課題
+## 意思決定の変遷
 ```
+
+（実際に作成する際は Confluence Storage Format を使ってください。）
 
 **スペース情報:**
 
