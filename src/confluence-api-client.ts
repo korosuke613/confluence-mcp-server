@@ -8,6 +8,7 @@ import type {
 export class ConfluenceAPIClient {
   private v2ApiUrl: string;
   private v1ApiUrl: string;
+  private pageAncestorsCache: Map<string, string[]> = new Map();
 
   constructor(public config: ConfluenceConfig) {
     this.v2ApiUrl = `${config.baseUrl.replace(/\/$/, "")}/wiki/api/v2`;
@@ -39,6 +40,110 @@ export class ConfluenceAPIClient {
       throw new Error(
         `アクセスが許可されていないスペースです: ${spaceKey}. 許可されたスペース: ${
           this.config.allowedSpaces?.join(", ")
+        }`,
+      );
+    }
+  }
+
+  /**
+   * ページの祖先を取得してアクセス許可をチェック
+   * @param pageId チェック対象のページID
+   * @param allowedPages 許可されたページIDのリスト
+   * @returns アクセスが許可されているかどうか
+   */
+  private async isPageAccessAllowed(
+    pageId: string,
+    allowedPages?: string[],
+  ): Promise<boolean> {
+    if (!allowedPages || allowedPages.length === 0) {
+      return true; // 制限が設定されていない場合はすべて許可
+    }
+
+    // 直接指定されたページIDがリストに含まれているかチェック
+    if (allowedPages.includes(pageId)) {
+      return true;
+    }
+
+    // キャッシュから祖先情報を取得
+    let ancestorIds: string[] | undefined = this.pageAncestorsCache.get(pageId);
+
+    if (!ancestorIds) {
+      try {
+        // ページの祖先を取得
+        const response = await fetch(
+          `${this.v2ApiUrl}/pages/${pageId}?expand=ancestors`,
+          {
+            headers: this.getAuthHeaders(),
+          },
+        );
+
+        if (!response.ok) {
+          console.error(
+            `Failed to fetch page ancestors: ${response.statusText}`,
+          );
+          return false;
+        }
+
+        const pageData = await response.json();
+        const ancestors = pageData.ancestors || [];
+
+        // 祖先のIDリストを抽出してキャッシュに保存
+        const ancestorIdsFromApi: string[] = ancestors.map((
+          ancestor: { id: string },
+        ) => ancestor.id);
+        ancestorIds = ancestorIdsFromApi;
+        this.pageAncestorsCache.set(pageId, ancestorIdsFromApi);
+      } catch (error) {
+        console.error(`Error checking page access: ${error}`);
+        return false;
+      }
+    }
+
+    // キャッシュされた祖先の中に許可されたページIDが含まれているかチェック
+    if (ancestorIds) {
+      for (const ancestorId of ancestorIds) {
+        if (allowedPages.includes(ancestorId)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * 読み取りアクセスを検証
+   * @param pageId チェック対象のページID
+   * @throws エラー: アクセスが許可されていないページの場合
+   */
+  async validatePageReadAccess(pageId: string): Promise<void> {
+    const allowed = await this.isPageAccessAllowed(
+      pageId,
+      this.config.allowedReadParentPages,
+    );
+    if (!allowed) {
+      throw new Error(
+        `読み取りアクセスが許可されていないページです: ${pageId}. 許可されたページ: ${
+          this.config.allowedReadParentPages?.join(", ") || "すべて"
+        }`,
+      );
+    }
+  }
+
+  /**
+   * 書き込みアクセスを検証
+   * @param pageId チェック対象のページID（親ページIDまたは更新対象ページID）
+   * @throws エラー: アクセスが許可されていないページの場合
+   */
+  async validatePageWriteAccess(pageId: string): Promise<void> {
+    const allowed = await this.isPageAccessAllowed(
+      pageId,
+      this.config.allowedWriteParentPages,
+    );
+    if (!allowed) {
+      throw new Error(
+        `書き込みアクセスが許可されていないページです: ${pageId}. 許可されたページ: ${
+          this.config.allowedWriteParentPages?.join(", ") || "すべて"
         }`,
       );
     }
@@ -117,6 +222,15 @@ export class ConfluenceAPIClient {
       ).join(" OR ");
       cqlQuery = `(${spaceFilter}) AND ${cqlQuery}`;
     }
+    if (
+      this.config.allowedReadParentPages &&
+      this.config.allowedReadParentPages.length > 0
+    ) {
+      const parentFilter = this.config.allowedReadParentPages.map((id) =>
+        `ancestor=${id}`
+      ).join(" OR ");
+      cqlQuery = `(${parentFilter}) AND ${cqlQuery}`;
+    }
 
     const endpoint = `/content/search?cql=${
       encodeURIComponent(cqlQuery)
@@ -129,6 +243,9 @@ export class ConfluenceAPIClient {
     pageId: string,
     _expand: string = "body.storage,version",
   ): Promise<ConfluencePage> {
+    // ページの読み取りアクセス権限をチェック
+    await this.validatePageReadAccess(pageId);
+
     const endpoint = `/pages/${pageId}?body-format=storage`;
     const page = await this.makeRequest<ConfluencePage>(endpoint);
 
@@ -202,6 +319,11 @@ export class ConfluenceAPIClient {
       }
     }
 
+    // 親ページが決定した場合、書き込みアクセス権限をチェック
+    if (finalParentPageId) {
+      await this.validatePageWriteAccess(finalParentPageId);
+    }
+
     const body = {
       type: "page",
       title: title,
@@ -220,10 +342,15 @@ export class ConfluenceAPIClient {
     };
 
     const endpoint = "/content";
-    return await this.makeRequest<ConfluencePage>(endpoint, {
+    const result = await this.makeRequest<ConfluencePage>(endpoint, {
       method: "POST",
       body: JSON.stringify(body),
     }, true); // v1 APIを使用
+
+    // ページ作成後、キャッシュをクリア（親子関係が変わる可能性があるため）
+    this.clearPageAncestorsCache();
+
+    return result;
   }
 
   // doc: https://developer.atlassian.com/server/confluence/rest/v1000/api-group-content-resource/#api-rest-api-content-contentid-put
@@ -256,10 +383,15 @@ export class ConfluenceAPIClient {
     };
 
     const endpoint = `/content/${pageId}`;
-    return await this.makeRequest<ConfluencePage>(endpoint, {
+    const result = await this.makeRequest<ConfluencePage>(endpoint, {
       method: "PUT",
       body: JSON.stringify(body),
     }, true); // v1 APIを使用
+
+    // ページ更新後、該当ページのキャッシュをクリア
+    this.clearPageAncestorsCache(pageId);
+
+    return result;
   }
 
   // doc: https://developer.atlassian.com/server/confluence/rest/v1000/api-group-search/#api-rest-api-search-get
@@ -274,5 +406,17 @@ export class ConfluenceAPIClient {
     const endpoint =
       `/content/search?cql=space="${spaceKey}" AND text~"${encodedQuery}"&limit=${limit}&expand=space`;
     return await this.makeRequest<ConfluenceSearchResult>(endpoint, {}, true);
+  }
+
+  /**
+   * ページの祖先キャッシュをクリア
+   * @param pageId 特定のページIDを指定してクリア（省略時は全キャッシュをクリア）
+   */
+  clearPageAncestorsCache(pageId?: string): void {
+    if (pageId) {
+      this.pageAncestorsCache.delete(pageId);
+    } else {
+      this.pageAncestorsCache.clear();
+    }
   }
 }

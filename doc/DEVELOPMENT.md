@@ -122,6 +122,7 @@ DesktopなどのMCPクライアントで使用する際は、クライアント�
 - コメントでバージョン情報を併記する
 
 例:
+
 ```yaml
 # ❌ バージョンタグ使用（推奨しない）
 uses: orhun/git-cliff-action@v3
