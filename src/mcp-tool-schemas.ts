@@ -95,7 +95,7 @@ export const CONFLUENCE_TOOL_SCHEMAS = [
         content: {
           type: "string",
           description:
-            "Page content in Confluence storage format or simple HTML",
+            'Page content in Confluence Storage Format. Use proper HTML tags like <h1>, <h2> for headings, <ul><li> for lists, <strong> for bold, <em> for italic, <a href=""> for links. For table of contents, use <ac:structured-macro ac:name="toc" />. Avoid markdown syntax like ## or * as they will display as plain text.',
         },
         parentPageId: {
           type: "string",
@@ -123,7 +123,7 @@ export const CONFLUENCE_TOOL_SCHEMAS = [
         content: {
           type: "string",
           description:
-            "Updated page content in Confluence storage format or simple HTML",
+            'Updated page content in Confluence Storage Format. Use proper HTML tags like <h1>, <h2> for headings, <ul><li> for lists, <strong> for bold, <em> for italic, <a href=""> for links. For table of contents, use <ac:structured-macro ac:name="toc" />. Avoid markdown syntax like ## or * as they will display as plain text.',
         },
       },
       required: ["pageId", "title", "content"],

@@ -71,7 +71,8 @@ deno task preCommit
 - 設定エラー時のヘルプ表示
 - 許可スペースの管理
 
-**ConfluenceAPIClient** (`src/confluence-api-client.ts`): HTTPクライアントラッパー
+**ConfluenceAPIClient** (`src/confluence-api-client.ts`):
+HTTPクライアントラッパー
 
 - メール/APIトークンを使用したBasic認証の処理
 - Confluence Cloud への REST API 呼び出し（v1/v2混合）
