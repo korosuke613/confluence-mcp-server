@@ -198,6 +198,21 @@ export class ConfluenceClient {
   async createPage(spaceKey: string, title: string, content: string, parentPageId?: string): Promise<ConfluencePage> {
     this.validateSpaceAccess(spaceKey);
     
+    // 親ページが指定されていない場合、スペースのホームページを取得して親ページとして使用
+    let finalParentPageId = parentPageId;
+    if (!finalParentPageId) {
+      try {
+        const space = await this.getSpace(spaceKey);
+        if (space.homepage && space.homepage.id) {
+          finalParentPageId = space.homepage.id;
+          console.error(`親ページが指定されていないため、スペースのホームページ (ID: ${finalParentPageId}) を親ページとして使用します`);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`スペースのホームページ取得に失敗しました: ${message}. ルート直下にページを作成します`);
+      }
+    }
+    
     const body = {
       type: "page",
       title: title,
@@ -210,8 +225,8 @@ export class ConfluenceClient {
           representation: "storage"
         }
       },
-      ...(parentPageId && {
-        ancestors: [{ id: parentPageId }]
+      ...(finalParentPageId && {
+        ancestors: [{ id: finalParentPageId }]
       })
     };
 
@@ -257,5 +272,106 @@ export class ConfluenceClient {
     const encodedQuery = encodeURIComponent(query);
     const endpoint = `/content/search?cql=space="${spaceKey}" AND text~"${encodedQuery}"&limit=${limit}&expand=space`;
     return await this.makeRequest<ConfluenceSearchResult>(endpoint, {}, true);
+  }
+
+  async findOrCreateParentPage(spaceKey: string, parentTitle: string, parentContent?: string): Promise<string> {
+    this.validateSpaceAccess(spaceKey);
+    
+    // まず、指定されたタイトルのページが存在するかを検索
+    const searchResults = await this.searchBySpace(spaceKey, parentTitle, 10);
+    
+    // 完全一致のページを探す
+    const exactMatch = searchResults.results.find(page => 
+      page.title.toLowerCase() === parentTitle.toLowerCase() && page.space.key === spaceKey
+    );
+    
+    if (exactMatch) {
+      console.error(`既存の親ページが見つかりました: "${parentTitle}" (ID: ${exactMatch.id})`);
+      return exactMatch.id;
+    }
+    
+    // 見つからない場合は新しく作成
+    const defaultContent = parentContent || `<h1>${parentTitle}</h1><p>このページは自動生成された親ページです。</p>`;
+    const newPage = await this.createPage(spaceKey, parentTitle, defaultContent);
+    console.error(`新しい親ページを作成しました: "${parentTitle}" (ID: ${newPage.id})`);
+    
+    return newPage.id;
+  }
+
+  async findOrCreateTodaysProgressPage(spaceKey: string, progressParentId: string): Promise<{ pageId: string; isNew: boolean }> {
+    this.validateSpaceAccess(spaceKey);
+    
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+    const pageTitle = `Confluence MCP Server 開発状況 - ${dateStr}`;
+    
+    // 今日の進捗ページを検索
+    const searchResults = await this.searchBySpace(spaceKey, pageTitle, 5);
+    const exactMatch = searchResults.results.find(page => 
+      page.title === pageTitle && page.space.key === spaceKey
+    );
+    
+    if (exactMatch) {
+      console.error(`本日の進捗ページが見つかりました: "${pageTitle}" (ID: ${exactMatch.id})`);
+      return { pageId: exactMatch.id, isNew: false };
+    }
+    
+    // 見つからない場合は新しく作成
+    const taskDescription = "Confluence MCP Serverの開発進捗と実装状況の記録";
+    const objectives = ["開発タスクの完了", "コード品質の向上", "機能の追加・改善"];
+    const content = this.generateTaskPageContent(taskDescription, objectives, "進行中");
+    
+    const newPage = await this.createPage(spaceKey, pageTitle, content, progressParentId);
+    console.error(`新しい進捗ページを作成しました: "${pageTitle}" (ID: ${newPage.id})`);
+    
+    return { pageId: newPage.id, isNew: true };
+  }
+
+  private generateTaskPageContent(taskDescription: string, objectives: string[], progress: string): string {
+    const currentDate = new Date().toLocaleString("ja-JP");
+    
+    return `<ac:structured-macro ac:name="info">
+  <ac:rich-text-body>
+    <p><strong>作成日時:</strong> ${currentDate}</p>
+    <p><strong>ステータス:</strong> ${progress}</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+
+<h2>タスク概要</h2>
+<p>${taskDescription}</p>
+
+<h2>目標・目的</h2>
+<ul>
+${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
+</ul>
+
+<h2>進捗状況</h2>
+<p><strong>現在のステータス:</strong> ${progress}</p>
+
+<h2>実施内容・発見事項</h2>
+<ul>
+  <li>（ここに実施内容や発見事項を追記していきます）</li>
+</ul>
+
+<h2>次のアクション</h2>
+<ul>
+  <li>（ここに次のステップを記載していきます）</li>
+</ul>
+
+<h2>意思決定ログ</h2>
+<table>
+  <tbody>
+    <tr>
+      <th>日時</th>
+      <th>決定事項</th>
+      <th>理由</th>
+    </tr>
+    <tr>
+      <td>${currentDate}</td>
+      <td>タスク開始</td>
+      <td>-</td>
+    </tr>
+  </tbody>
+</table>`;
   }
 }
