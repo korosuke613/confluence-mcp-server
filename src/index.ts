@@ -11,6 +11,7 @@ import { ConfluenceClient } from "./confluence-client.ts";
 class ConfluenceMCPServer {
   private server: Server;
   private confluenceClient: ConfluenceClient | null = null;
+  private readOnlyMode: boolean = false;
 
   constructor() {
     this.server = new Server(
@@ -22,7 +23,7 @@ class ConfluenceMCPServer {
         capabilities: {
           tools: {},
         },
-      }
+      },
     );
 
     this.setupHandlers();
@@ -31,10 +32,10 @@ class ConfluenceMCPServer {
   private generateTaskPageContent(
     taskDescription: string,
     objectives: string[],
-    progress: string
+    progress: string,
   ): string {
     const currentDate = new Date().toLocaleString("ja-JP");
-    
+
     return `<ac:structured-macro ac:name="info">
   <ac:rich-text-body>
     <p><strong>作成日時:</strong> ${currentDate}</p>
@@ -47,7 +48,7 @@ class ConfluenceMCPServer {
 
 <h2>目標・目的</h2>
 <ul>
-${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
+${objectives.map((obj) => `  <li>${obj}</li>`).join("\n")}
 </ul>
 
 <h2>進捗状況</h2>
@@ -84,7 +85,7 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
     existingContent: string,
     newProgress: string,
     newFindings: string[],
-    nextSteps: string[]
+    nextSteps: string[],
   ): string {
     const currentDate = new Date().toLocaleString("ja-JP");
     let updatedContent = existingContent;
@@ -92,24 +93,28 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
     // ステータス更新
     updatedContent = updatedContent.replace(
       /<p><strong>ステータス:<\/strong>[^<]*<\/p>/,
-      `<p><strong>ステータス:</strong> ${newProgress}</p>`
+      `<p><strong>ステータス:</strong> ${newProgress}</p>`,
     );
 
     // 新しい発見事項を追加
     if (newFindings.length > 0) {
-      const findingsHtml = newFindings.map(finding => `  <li>${finding} (${currentDate})</li>`).join('\n');
+      const findingsHtml = newFindings.map((finding) =>
+        `  <li>${finding} (${currentDate})</li>`
+      ).join("\n");
       updatedContent = updatedContent.replace(
         /<h2>実施内容・発見事項<\/h2>\s*<ul>/,
-        `<h2>実施内容・発見事項</h2>\n<ul>\n${findingsHtml}`
+        `<h2>実施内容・発見事項</h2>\n<ul>\n${findingsHtml}`,
       );
     }
 
     // 次のステップを更新
     if (nextSteps.length > 0) {
-      const nextStepsHtml = nextSteps.map(step => `  <li>${step}</li>`).join('\n');
+      const nextStepsHtml = nextSteps.map((step) => `  <li>${step}</li>`).join(
+        "\n",
+      );
       updatedContent = updatedContent.replace(
         /<h2>次のアクション<\/h2>\s*<ul>[\s\S]*?<\/ul>/,
-        `<h2>次のアクション</h2>\n<ul>\n${nextStepsHtml}\n</ul>`
+        `<h2>次のアクション</h2>\n<ul>\n${nextStepsHtml}\n</ul>`,
       );
     }
 
@@ -117,15 +122,28 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
     const newLogEntry = `    <tr>
       <td>${currentDate}</td>
       <td>進捗更新: ${newProgress}</td>
-      <td>${newFindings.length > 0 ? '新しい発見事項を追加' : '進捗状況の更新'}</td>
+      <td>${
+      newFindings.length > 0 ? "新しい発見事項を追加" : "進捗状況の更新"
+    }</td>
     </tr>`;
-    
+
     updatedContent = updatedContent.replace(
       /<\/tbody>\s*<\/table>/,
-      `${newLogEntry}\n  </tbody>\n</table>`
+      `${newLogEntry}\n  </tbody>\n</table>`,
     );
 
     return updatedContent;
+  }
+
+  private getWritableToolNames() {
+    return [
+      "confluence_create_task_page",
+      "confluence_update_task_progress",
+      "confluence_create_page",
+      "confluence_update_page",
+      "confluence_find_or_create_parent",
+      "confluence_manage_todays_progress",
+    ];
   }
 
   private setupHandlers() {
@@ -144,7 +162,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
                 limit: {
                   type: "number",
-                  description: "Maximum number of results to return (default: 10)",
+                  description:
+                    "Maximum number of results to return (default: 10)",
                   default: 10,
                 },
               },
@@ -163,7 +182,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
                 expand: {
                   type: "string",
-                  description: "Comma-separated list of properties to expand (e.g., 'body.storage,version')",
+                  description:
+                    "Comma-separated list of properties to expand (e.g., 'body.storage,version')",
                   default: "body.storage,version",
                 },
               },
@@ -196,7 +216,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
                 limit: {
                   type: "number",
-                  description: "Maximum number of pages to return (default: 25)",
+                  description:
+                    "Maximum number of pages to return (default: 25)",
                   default: 25,
                 },
               },
@@ -205,7 +226,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
           },
           {
             name: "confluence_create_task_page",
-            description: "Create a new Confluence page for task tracking with structured content",
+            description:
+              "Create a new Confluence page for task tracking with structured content",
             inputSchema: {
               type: "object",
               properties: {
@@ -233,7 +255,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
                 parentPageId: {
                   type: "string",
-                  description: "Parent page ID (optional). If not specified, the space's homepage will be used as the parent page to avoid creating pages directly under the space root.",
+                  description:
+                    "Parent page ID (optional). If not specified, the space's homepage will be used as the parent page to avoid creating pages directly under the space root.",
                 },
               },
               required: ["spaceKey", "title", "taskDescription"],
@@ -241,7 +264,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
           },
           {
             name: "confluence_update_task_progress",
-            description: "Update task progress and add new decisions or findings to an existing page",
+            description:
+              "Update task progress and add new decisions or findings to an existing page",
             inputSchema: {
               type: "object",
               properties: {
@@ -283,11 +307,13 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
                 content: {
                   type: "string",
-                  description: "Page content in Confluence storage format or simple HTML",
+                  description:
+                    "Page content in Confluence storage format or simple HTML",
                 },
                 parentPageId: {
                   type: "string",
-                  description: "Parent page ID (optional). If not specified, the space's homepage will be used as the parent page to avoid creating pages directly under the space root.",
+                  description:
+                    "Parent page ID (optional). If not specified, the space's homepage will be used as the parent page to avoid creating pages directly under the space root.",
                 },
               },
               required: ["spaceKey", "title", "content"],
@@ -309,7 +335,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
                 content: {
                   type: "string",
-                  description: "Updated page content in Confluence storage format or simple HTML",
+                  description:
+                    "Updated page content in Confluence storage format or simple HTML",
                 },
               },
               required: ["pageId", "title", "content"],
@@ -317,7 +344,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
           },
           {
             name: "confluence_find_or_create_parent",
-            description: "Find an existing page by title or create a new parent page if not found",
+            description:
+              "Find an existing page by title or create a new parent page if not found",
             inputSchema: {
               type: "object",
               properties: {
@@ -331,7 +359,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
                 parentContent: {
                   type: "string",
-                  description: "Content for the parent page if it needs to be created (optional)",
+                  description:
+                    "Content for the parent page if it needs to be created (optional)",
                 },
               },
               required: ["spaceKey", "parentTitle"],
@@ -339,7 +368,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
           },
           {
             name: "confluence_manage_todays_progress",
-            description: "Find today's progress page or create a new one, then optionally update it with new findings",
+            description:
+              "Find today's progress page or create a new one, then optionally update it with new findings",
             inputSchema: {
               type: "object",
               properties: {
@@ -369,7 +399,14 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
               required: ["spaceKey", "progressParentId"],
             },
           },
-        ],
+        ].filter((tool) => {
+          // read-onlyモードの場合は書き込み系ツールを除外
+          if (this.readOnlyMode) {
+            const writableTools = this.getWritableToolNames();
+            return !writableTools.includes(tool.name);
+          }
+          return true;
+        }),
       };
     });
 
@@ -377,7 +414,9 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
       const { name, arguments: args } = request.params;
 
       if (!this.confluenceClient) {
-        throw new Error("Confluence client not initialized. Please set CONFLUENCE_BASE_URL, CONFLUENCE_EMAIL, and CONFLUENCE_API_TOKEN environment variables.");
+        throw new Error(
+          "Confluence client not initialized. Please set CONFLUENCE_BASE_URL, CONFLUENCE_EMAIL, and CONFLUENCE_API_TOKEN environment variables.",
+        );
       }
 
       if (!args) {
@@ -388,8 +427,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
         switch (name) {
           case "confluence_search": {
             const searchResults = await this.confluenceClient.search(
-              args.query as string, 
-              (args.limit as number) || 10
+              args.query as string,
+              (args.limit as number) || 10,
             );
             return {
               content: [
@@ -403,8 +442,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
 
           case "confluence_get_page": {
             const page = await this.confluenceClient.getPage(
-              args.pageId as string, 
-              (args.expand as string) || "body.storage,version"
+              args.pageId as string,
+              (args.expand as string) || "body.storage,version",
             );
             return {
               content: [
@@ -417,7 +456,9 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
           }
 
           case "confluence_get_space": {
-            const space = await this.confluenceClient.getSpace(args.spaceKey as string);
+            const space = await this.confluenceClient.getSpace(
+              args.spaceKey as string,
+            );
             return {
               content: [
                 {
@@ -430,8 +471,8 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
 
           case "confluence_list_pages": {
             const pages = await this.confluenceClient.listPages(
-              args.spaceKey as string, 
-              (args.limit as number) || 25
+              args.spaceKey as string,
+              (args.limit as number) || 25,
             );
             return {
               content: [
@@ -447,46 +488,61 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
             const content = this.generateTaskPageContent(
               args.taskDescription as string,
               args.objectives as string[] || [],
-              args.progress as string || "開始"
+              args.progress as string || "開始",
             );
-            
+
             const page = await this.confluenceClient.createPage(
               args.spaceKey as string,
               args.title as string,
               content,
-              args.parentPageId as string
+              args.parentPageId as string,
             );
-            
+
             return {
               content: [
                 {
                   type: "text",
-                  text: JSON.stringify({ success: true, pageId: page.id, url: page._links?.webui }, null, 2),
+                  text: JSON.stringify(
+                    { success: true, pageId: page.id, url: page._links?.webui },
+                    null,
+                    2,
+                  ),
                 },
               ],
             };
           }
 
           case "confluence_update_task_progress": {
-            const existingPage = await this.confluenceClient.getPage(args.pageId as string, "body.storage,version");
+            const existingPage = await this.confluenceClient.getPage(
+              args.pageId as string,
+              "body.storage,version",
+            );
             const updatedContent = this.updateTaskPageContent(
               existingPage.body?.storage?.value || "",
               args.progress as string,
               args.newFindings as string[] || [],
-              args.nextSteps as string[] || []
+              args.nextSteps as string[] || [],
             );
-            
+
             const updatedPage = await this.confluenceClient.updatePage(
               args.pageId as string,
               existingPage.title,
-              updatedContent
+              updatedContent,
             );
-            
+
             return {
               content: [
                 {
                   type: "text",
-                  text: JSON.stringify({ success: true, pageId: updatedPage.id, version: updatedPage.version?.number }, null, 2),
+                  text: JSON.stringify(
+                    {
+                      success: true,
+                      pageId: updatedPage.id,
+                      version: updatedPage.version?.number,
+                    },
+                    null,
+                    2,
+                  ),
                 },
               ],
             };
@@ -497,14 +553,18 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
               args.spaceKey as string,
               args.title as string,
               args.content as string,
-              args.parentPageId as string
+              args.parentPageId as string,
             );
-            
+
             return {
               content: [
                 {
                   type: "text",
-                  text: JSON.stringify({ success: true, pageId: page.id, url: page._links?.webui }, null, 2),
+                  text: JSON.stringify(
+                    { success: true, pageId: page.id, url: page._links?.webui },
+                    null,
+                    2,
+                  ),
                 },
               ],
             };
@@ -514,65 +574,91 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
             const updatedPage = await this.confluenceClient.updatePage(
               args.pageId as string,
               args.title as string,
-              args.content as string
+              args.content as string,
             );
-            
+
             return {
               content: [
                 {
                   type: "text",
-                  text: JSON.stringify({ success: true, pageId: updatedPage.id, version: updatedPage.version?.number }, null, 2),
+                  text: JSON.stringify(
+                    {
+                      success: true,
+                      pageId: updatedPage.id,
+                      version: updatedPage.version?.number,
+                    },
+                    null,
+                    2,
+                  ),
                 },
               ],
             };
           }
 
           case "confluence_find_or_create_parent": {
-            const parentPageId = await this.confluenceClient.findOrCreateParentPage(
-              args.spaceKey as string,
-              args.parentTitle as string,
-              args.parentContent as string
-            );
-            
+            const parentPageId = await this.confluenceClient
+              .findOrCreateParentPage(
+                args.spaceKey as string,
+                args.parentTitle as string,
+                args.parentContent as string,
+              );
+
             return {
               content: [
                 {
                   type: "text",
-                  text: JSON.stringify({ success: true, parentPageId }, null, 2),
+                  text: JSON.stringify(
+                    { success: true, parentPageId },
+                    null,
+                    2,
+                  ),
                 },
               ],
             };
           }
 
           case "confluence_manage_todays_progress": {
-            const result = await this.confluenceClient.findOrCreateTodaysProgressPage(
-              args.spaceKey as string,
-              args.progressParentId as string
-            );
-            
+            const result = await this.confluenceClient
+              .findOrCreateTodaysProgressPage(
+                args.spaceKey as string,
+                args.progressParentId as string,
+              );
+
             // 更新情報がある場合は進捗を更新
             if (args.newFindings || args.nextSteps || args.progress) {
-              const existingPage = await this.confluenceClient.getPage(result.pageId, "body.storage,version");
+              const existingPage = await this.confluenceClient.getPage(
+                result.pageId,
+                "body.storage,version",
+              );
               const updatedContent = this.updateTaskPageContent(
                 existingPage.body?.storage?.value || "",
                 args.progress as string || "進行中",
                 args.newFindings as string[] || [],
-                args.nextSteps as string[] || []
+                args.nextSteps as string[] || [],
               );
-              
-              await this.confluenceClient.updatePage(result.pageId, existingPage.title, updatedContent);
+
+              await this.confluenceClient.updatePage(
+                result.pageId,
+                existingPage.title,
+                updatedContent,
+              );
             }
-            
+
             return {
               content: [
                 {
                   type: "text",
-                  text: JSON.stringify({ 
-                    success: true, 
-                    pageId: result.pageId, 
-                    isNew: result.isNew,
-                    updated: !!(args.newFindings || args.nextSteps || args.progress)
-                  }, null, 2),
+                  text: JSON.stringify(
+                    {
+                      success: true,
+                      pageId: result.pageId,
+                      isNew: result.isNew,
+                      updated:
+                        !!(args.newFindings || args.nextSteps || args.progress),
+                    },
+                    null,
+                    2,
+                  ),
                 },
               ],
             };
@@ -593,6 +679,7 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
     const email = Deno.env.get("CONFLUENCE_EMAIL");
     const apiToken = Deno.env.get("CONFLUENCE_API_TOKEN");
     const allowedSpacesEnv = Deno.env.get("CONFLUENCE_ALLOWED_SPACES");
+    const readOnlyEnv = Deno.env.get("CONFLUENCE_READ_ONLY");
 
     if (!baseUrl || !email || !apiToken) {
       console.error("Missing required environment variables:");
@@ -600,19 +687,33 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
       console.error("- CONFLUENCE_EMAIL: Your Confluence account email");
       console.error("- CONFLUENCE_API_TOKEN: Your Confluence API token");
       console.error("Optional:");
-      console.error("- CONFLUENCE_ALLOWED_SPACES: Comma-separated list of allowed space keys");
+      console.error(
+        "- CONFLUENCE_ALLOWED_SPACES: Comma-separated list of allowed space keys",
+      );
+      console.error(
+        "- CONFLUENCE_READ_ONLY: Set to 'true' to enable read-only mode",
+      );
       Deno.exit(1);
     }
 
     // スペース制限の解析
-    const allowedSpaces = allowedSpacesEnv 
-      ? allowedSpacesEnv.split(',').map(s => s.trim()).filter(s => s.length > 0)
+    const allowedSpaces = allowedSpacesEnv
+      ? allowedSpacesEnv.split(",").map((s) => s.trim()).filter((s) =>
+        s.length > 0
+      )
       : undefined;
 
+    // read-onlyモードの設定
+    this.readOnlyMode = readOnlyEnv === "true";
+
     if (allowedSpaces && allowedSpaces.length > 0) {
-      console.error(`Space access restricted to: ${allowedSpaces.join(', ')}`);
+      console.error(`Space access restricted to: ${allowedSpaces.join(", ")}`);
     } else {
       console.error("No space restrictions applied");
+    }
+
+    if (this.readOnlyMode) {
+      console.error("Read-only mode enabled - write operations are disabled");
     }
 
     this.confluenceClient = new ConfluenceClient({
@@ -620,15 +721,16 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
       email,
       apiToken,
       allowedSpaces,
+      readOnly: this.readOnlyMode,
     });
   }
 
   async run() {
     this.initializeConfluenceClient();
-    
+
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    
+
     console.error("Confluence MCP Server running on stdio");
   }
 }

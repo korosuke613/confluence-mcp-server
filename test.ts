@@ -9,7 +9,7 @@ console.log("✓ ConfluenceClient imported successfully");
 const testConfig = {
   baseUrl: "https://test.atlassian.net",
   email: "test@example.com",
-  apiToken: "test-token"
+  apiToken: "test-token",
 };
 
 try {
@@ -21,7 +21,9 @@ try {
 }
 
 console.log("✓ All basic tests passed!");
-console.log("\nTo run the actual server, set the following environment variables:");
+console.log(
+  "\nTo run the actual server, set the following environment variables:",
+);
 console.log("- CONFLUENCE_BASE_URL");
 console.log("- CONFLUENCE_EMAIL");
 console.log("- CONFLUENCE_API_TOKEN");
