@@ -233,7 +233,7 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
                 parentPageId: {
                   type: "string",
-                  description: "Parent page ID (optional)",
+                  description: "Parent page ID (optional). If not specified, the space's homepage will be used as the parent page to avoid creating pages directly under the space root.",
                 },
               },
               required: ["spaceKey", "title", "taskDescription"],
@@ -287,7 +287,7 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
                 parentPageId: {
                   type: "string",
-                  description: "Parent page ID (optional)",
+                  description: "Parent page ID (optional). If not specified, the space's homepage will be used as the parent page to avoid creating pages directly under the space root.",
                 },
               },
               required: ["spaceKey", "title", "content"],
@@ -313,6 +313,60 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 },
               },
               required: ["pageId", "title", "content"],
+            },
+          },
+          {
+            name: "confluence_find_or_create_parent",
+            description: "Find an existing page by title or create a new parent page if not found",
+            inputSchema: {
+              type: "object",
+              properties: {
+                spaceKey: {
+                  type: "string",
+                  description: "Confluence space key",
+                },
+                parentTitle: {
+                  type: "string",
+                  description: "Title of the parent page to find or create",
+                },
+                parentContent: {
+                  type: "string",
+                  description: "Content for the parent page if it needs to be created (optional)",
+                },
+              },
+              required: ["spaceKey", "parentTitle"],
+            },
+          },
+          {
+            name: "confluence_manage_todays_progress",
+            description: "Find today's progress page or create a new one, then optionally update it with new findings",
+            inputSchema: {
+              type: "object",
+              properties: {
+                spaceKey: {
+                  type: "string",
+                  description: "Confluence space key",
+                },
+                progressParentId: {
+                  type: "string",
+                  description: "Parent page ID for progress pages",
+                },
+                newFindings: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "New findings or updates to add (optional)",
+                },
+                nextSteps: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Next steps or action items (optional)",
+                },
+                progress: {
+                  type: "string",
+                  description: "Updated progress status (optional)",
+                },
+              },
+              required: ["spaceKey", "progressParentId"],
             },
           },
         ],
@@ -468,6 +522,57 @@ ${objectives.map(obj => `  <li>${obj}</li>`).join('\n')}
                 {
                   type: "text",
                   text: JSON.stringify({ success: true, pageId: updatedPage.id, version: updatedPage.version?.number }, null, 2),
+                },
+              ],
+            };
+          }
+
+          case "confluence_find_or_create_parent": {
+            const parentPageId = await this.confluenceClient.findOrCreateParentPage(
+              args.spaceKey as string,
+              args.parentTitle as string,
+              args.parentContent as string
+            );
+            
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({ success: true, parentPageId }, null, 2),
+                },
+              ],
+            };
+          }
+
+          case "confluence_manage_todays_progress": {
+            const result = await this.confluenceClient.findOrCreateTodaysProgressPage(
+              args.spaceKey as string,
+              args.progressParentId as string
+            );
+            
+            // 更新情報がある場合は進捗を更新
+            if (args.newFindings || args.nextSteps || args.progress) {
+              const existingPage = await this.confluenceClient.getPage(result.pageId, "body.storage,version");
+              const updatedContent = this.updateTaskPageContent(
+                existingPage.body?.storage?.value || "",
+                args.progress as string || "進行中",
+                args.newFindings as string[] || [],
+                args.nextSteps as string[] || []
+              );
+              
+              await this.confluenceClient.updatePage(result.pageId, existingPage.title, updatedContent);
+            }
+            
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({ 
+                    success: true, 
+                    pageId: result.pageId, 
+                    isNew: result.isNew,
+                    updated: !!(args.newFindings || args.nextSteps || args.progress)
+                  }, null, 2),
                 },
               ],
             };
