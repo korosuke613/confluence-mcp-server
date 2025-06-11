@@ -3,10 +3,8 @@ import type {
   ConfluencePage,
   ConfluenceSearchResult,
   ConfluenceSpace,
-  FindOrCreateResult,
 } from "./types.ts";
 import { ConfluenceAPIClient } from "./confluence-api-client.ts";
-import { TaskContentGenerator } from "./task-content-generator.ts";
 
 export class ConfluenceService {
   private apiClient: ConfluenceAPIClient;
@@ -122,57 +120,5 @@ export class ConfluenceService {
     );
 
     return newPage.id;
-  }
-
-  async findOrCreateTodaysProgressPage(
-    spaceKey: string,
-    progressParentId: string,
-  ): Promise<FindOrCreateResult> {
-    this.apiClient.validateWriteOperation();
-    this.apiClient.validateSpaceAccess(spaceKey);
-
-    const today = new Date();
-    const dateStr = `${today.getFullYear()}年${
-      today.getMonth() + 1
-    }月${today.getDate()}日`;
-    const pageTitle = `Confluence MCP Server 開発状況 - ${dateStr}`;
-
-    // 今日の進捗ページを検索
-    const searchResults = await this.searchBySpace(spaceKey, pageTitle, 5);
-    const exactMatch = searchResults.results.find((page) =>
-      page.title === pageTitle && page.space.key === spaceKey
-    );
-
-    if (exactMatch) {
-      console.error(
-        `本日の進捗ページが見つかりました: "${pageTitle}" (ID: ${exactMatch.id})`,
-      );
-      return { pageId: exactMatch.id, isNew: false };
-    }
-
-    // 見つからない場合は新しく作成
-    const taskDescription = "Confluence MCP Serverの開発進捗と実装状況の記録";
-    const objectives = [
-      "開発タスクの完了",
-      "コード品質の向上",
-      "機能の追加・改善",
-    ];
-    const content = TaskContentGenerator.generateTaskPageContent({
-      taskDescription,
-      objectives,
-      progress: "進行中",
-    });
-
-    const newPage = await this.createPage(
-      spaceKey,
-      pageTitle,
-      content,
-      progressParentId,
-    );
-    console.error(
-      `新しい進捗ページを作成しました: "${pageTitle}" (ID: ${newPage.id})`,
-    );
-
-    return { pageId: newPage.id, isNew: true };
   }
 }

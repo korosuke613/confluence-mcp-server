@@ -1,6 +1,13 @@
+const TOOL_NAME_SEARCH = "confluence_search";
+const TOOL_NAME_GET_PAGE = "confluence_get_page";
+const TOOL_NAME_GET_SPACE = "confluence_get_space";
+const TOOL_NAME_LIST_PAGES = "confluence_list_pages";
+const TOOL_NAME_CREATE_PAGE = "confluence_create_page";
+const TOOL_NAME_UPDATE_PAGE = "confluence_update_page";
+
 export const CONFLUENCE_TOOL_SCHEMAS = [
   {
-    name: "confluence_search",
+    name: TOOL_NAME_SEARCH,
     description: "Search for content in Confluence",
     inputSchema: {
       type: "object",
@@ -19,7 +26,7 @@ export const CONFLUENCE_TOOL_SCHEMAS = [
     },
   },
   {
-    name: "confluence_get_page",
+    name: TOOL_NAME_GET_PAGE,
     description: "Get a specific Confluence page by ID",
     inputSchema: {
       type: "object",
@@ -39,7 +46,7 @@ export const CONFLUENCE_TOOL_SCHEMAS = [
     },
   },
   {
-    name: "confluence_get_space",
+    name: TOOL_NAME_GET_SPACE,
     description: "Get information about a Confluence space",
     inputSchema: {
       type: "object",
@@ -53,7 +60,7 @@ export const CONFLUENCE_TOOL_SCHEMAS = [
     },
   },
   {
-    name: "confluence_list_pages",
+    name: TOOL_NAME_LIST_PAGES,
     description: "List pages in a Confluence space",
     inputSchema: {
       type: "object",
@@ -72,74 +79,7 @@ export const CONFLUENCE_TOOL_SCHEMAS = [
     },
   },
   {
-    name: "confluence_create_task_page",
-    description:
-      "Create a new Confluence page for task tracking with structured content",
-    inputSchema: {
-      type: "object",
-      properties: {
-        spaceKey: {
-          type: "string",
-          description: "Confluence space key",
-        },
-        title: {
-          type: "string",
-          description: "Page title",
-        },
-        taskDescription: {
-          type: "string",
-          description: "Description of the task or project",
-        },
-        objectives: {
-          type: "array",
-          items: { type: "string" },
-          description: "List of objectives or goals",
-        },
-        progress: {
-          type: "string",
-          description: "Current progress status",
-          default: "開始",
-        },
-        parentPageId: {
-          type: "string",
-          description:
-            "Parent page ID (optional). If not specified, the space's homepage will be used as the parent page to avoid creating pages directly under the space root.",
-        },
-      },
-      required: ["spaceKey", "title", "taskDescription"],
-    },
-  },
-  {
-    name: "confluence_update_task_progress",
-    description:
-      "Update task progress and add new decisions or findings to an existing page",
-    inputSchema: {
-      type: "object",
-      properties: {
-        pageId: {
-          type: "string",
-          description: "Page ID to update",
-        },
-        progress: {
-          type: "string",
-          description: "Updated progress status",
-        },
-        newFindings: {
-          type: "array",
-          items: { type: "string" },
-          description: "New findings or decisions to add",
-        },
-        nextSteps: {
-          type: "array",
-          items: { type: "string" },
-          description: "Next steps or action items",
-        },
-      },
-      required: ["pageId", "progress"],
-    },
-  },
-  {
-    name: "confluence_create_page",
+    name: TOOL_NAME_CREATE_PAGE,
     description: "Create a new Confluence page with custom content",
     inputSchema: {
       type: "object",
@@ -167,7 +107,7 @@ export const CONFLUENCE_TOOL_SCHEMAS = [
     },
   },
   {
-    name: "confluence_update_page",
+    name: TOOL_NAME_UPDATE_PAGE,
     description: "Update an existing Confluence page",
     inputSchema: {
       type: "object",
@@ -189,72 +129,11 @@ export const CONFLUENCE_TOOL_SCHEMAS = [
       required: ["pageId", "title", "content"],
     },
   },
-  {
-    name: "confluence_find_or_create_parent",
-    description:
-      "Find an existing page by title or create a new parent page if not found",
-    inputSchema: {
-      type: "object",
-      properties: {
-        spaceKey: {
-          type: "string",
-          description: "Confluence space key",
-        },
-        parentTitle: {
-          type: "string",
-          description: "Title of the parent page to find or create",
-        },
-        parentContent: {
-          type: "string",
-          description:
-            "Content for the parent page if it needs to be created (optional)",
-        },
-      },
-      required: ["spaceKey", "parentTitle"],
-    },
-  },
-  {
-    name: "confluence_manage_todays_progress",
-    description:
-      "Find today's progress page or create a new one, then optionally update it with new findings",
-    inputSchema: {
-      type: "object",
-      properties: {
-        spaceKey: {
-          type: "string",
-          description: "Confluence space key",
-        },
-        progressParentId: {
-          type: "string",
-          description: "Parent page ID for progress pages",
-        },
-        newFindings: {
-          type: "array",
-          items: { type: "string" },
-          description: "New findings or updates to add (optional)",
-        },
-        nextSteps: {
-          type: "array",
-          items: { type: "string" },
-          description: "Next steps or action items (optional)",
-        },
-        progress: {
-          type: "string",
-          description: "Updated progress status (optional)",
-        },
-      },
-      required: ["spaceKey", "progressParentId"],
-    },
-  },
 ];
 
 export const WRITABLE_TOOL_NAMES = [
-  "confluence_create_task_page",
-  "confluence_update_task_progress",
-  "confluence_create_page",
-  "confluence_update_page",
-  "confluence_find_or_create_parent",
-  "confluence_manage_todays_progress",
+  TOOL_NAME_CREATE_PAGE,
+  TOOL_NAME_UPDATE_PAGE,
 ];
 
 /**

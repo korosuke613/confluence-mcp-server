@@ -6,11 +6,11 @@ import type {
 } from "./types.ts";
 
 export class ConfluenceAPIClient {
-  private baseApiUrl: string;
+  private v2ApiUrl: string;
   private v1ApiUrl: string;
 
   constructor(public config: ConfluenceConfig) {
-    this.baseApiUrl = `${config.baseUrl.replace(/\/$/, "")}/wiki/api/v2`;
+    this.v2ApiUrl = `${config.baseUrl.replace(/\/$/, "")}/wiki/api/v2`;
     this.v1ApiUrl = `${config.baseUrl.replace(/\/$/, "")}/wiki/rest/api`;
   }
 
@@ -30,6 +30,10 @@ export class ConfluenceAPIClient {
     return this.config.allowedSpaces.includes(spaceKey);
   }
 
+  /*
+   *  スペースアクセスを検証
+   *  @throws エラー: アクセスが許可されていないスペースの場合
+   */
   validateSpaceAccess(spaceKey: string): void {
     if (!this.isSpaceAllowed(spaceKey)) {
       throw new Error(
@@ -40,6 +44,10 @@ export class ConfluenceAPIClient {
     }
   }
 
+  /*
+   * 書き込み操作を検証
+   * @throws エラー: read-onlyモードが有効な場合
+   */
   validateWriteOperation(): void {
     if (this.config.readOnly) {
       throw new Error(
@@ -48,12 +56,20 @@ export class ConfluenceAPIClient {
     }
   }
 
+  /*
+   * APIリクエストを実行
+   * @param endpoint APIエンドポイント
+   * @param options リクエストオプション
+   * @param useV1 v1 APIを使用するかどうか
+   * @returns レスポンスデータ
+   * @throws エラー: レスポンスが失敗した場合
+   */
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {},
     useV1 = false,
   ): Promise<T> {
-    const baseUrl = useV1 ? this.v1ApiUrl : this.baseApiUrl;
+    const baseUrl = useV1 ? this.v1ApiUrl : this.v2ApiUrl;
     const url = `${baseUrl}${endpoint}`;
     const headers = {
       ...this.getAuthHeaders(),
@@ -86,6 +102,7 @@ export class ConfluenceAPIClient {
     return response.json();
   }
 
+  // doc: https://developer.atlassian.com/cloud/confluence/rest/v1/api-group-content/#api-wiki-rest-api-content-search-get
   async search(
     query: string,
     limit: number = 10,
@@ -107,6 +124,7 @@ export class ConfluenceAPIClient {
     return await this.makeRequest<ConfluenceSearchResult>(endpoint, {}, true);
   }
 
+  // doc: https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/#api-pages-id-get
   async getPage(
     pageId: string,
     _expand: string = "body.storage,version",
@@ -126,6 +144,7 @@ export class ConfluenceAPIClient {
     return page;
   }
 
+  // doc: https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-space/#api-spaces-get
   async getSpace(spaceKey: string): Promise<ConfluenceSpace> {
     this.validateSpaceAccess(spaceKey);
 
@@ -139,6 +158,7 @@ export class ConfluenceAPIClient {
     throw new Error(`Space with key ${spaceKey} not found`);
   }
 
+  // doc: https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/#api-pages-get
   async listPages(
     spaceKey: string,
     limit: number = 25,
@@ -153,6 +173,7 @@ export class ConfluenceAPIClient {
     >(endpoint);
   }
 
+  // doc: https://developer.atlassian.com/server/confluence/rest/v1000/api-group-content-resource/#api-rest-api-content-post
   async createPage(
     spaceKey: string,
     title: string,
@@ -205,6 +226,7 @@ export class ConfluenceAPIClient {
     }, true); // v1 APIを使用
   }
 
+  // doc: https://developer.atlassian.com/server/confluence/rest/v1000/api-group-content-resource/#api-rest-api-content-contentid-put
   async updatePage(
     pageId: string,
     title: string,
@@ -240,6 +262,7 @@ export class ConfluenceAPIClient {
     }, true); // v1 APIを使用
   }
 
+  // doc: https://developer.atlassian.com/server/confluence/rest/v1000/api-group-search/#api-rest-api-search-get
   async searchBySpace(
     spaceKey: string,
     query: string,
