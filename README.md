@@ -67,7 +67,8 @@ deno task dev
 
 - `CONFLUENCE_ALLOWED_SPACES`: Comma-separated list of allowed space keys for
   access restriction (e.g., `TEAM,PROJECT,DOCS`)
-- `CONFLUENCE_READ_ONLY`: Set to `'true'` to enable read-only mode (disables all write operations)
+- `CONFLUENCE_READ_ONLY`: Set to `'true'` to enable read-only mode (disables all
+  write operations)
 
 ## MCP Tools
 
@@ -203,9 +204,12 @@ unset CONFLUENCE_READ_ONLY
 
 When read-only mode is enabled:
 
-- All write operations are disabled at both the MCP tool level and client API level
-- Only content reading tools are available: `confluence_search`, `confluence_get_page`, `confluence_get_space`, `confluence_list_pages`
-- Write tools are completely hidden from MCP clients and will not appear in tool lists
+- All write operations are disabled at both the MCP tool level and client API
+  level
+- Only content reading tools are available: `confluence_search`,
+  `confluence_get_page`, `confluence_get_space`, `confluence_list_pages`
+- Write tools are completely hidden from MCP clients and will not appear in tool
+  lists
 - Attempts to call write operations directly will result in clear error messages
 - Perfect for information retrieval scenarios where data integrity is critical
 
