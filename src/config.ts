@@ -10,6 +10,8 @@ export class ConfigManager {
     const apiToken = Deno.env.get("CONFLUENCE_API_TOKEN");
     const allowedSpacesEnv = Deno.env.get("CONFLUENCE_ALLOWED_SPACES");
     const readOnlyEnv = Deno.env.get("CONFLUENCE_READ_ONLY");
+    const allowedReadParentPagesEnv = Deno.env.get("CONFLUENCE_ALLOWED_PARENT_READ_PAGES");
+    const allowedWriteParentPagesEnv = Deno.env.get("CONFLUENCE_ALLOWED_PARENT_WRITE_PAGES");
 
     if (!baseUrl || !email || !apiToken) {
       throw new Error(
@@ -24,6 +26,19 @@ export class ConfigManager {
       )
       : undefined;
 
+    // ページ階層制限の解析
+    const allowedReadParentPages = allowedReadParentPagesEnv
+      ? allowedReadParentPagesEnv.split(",").map((s) => s.trim()).filter((s) =>
+        s.length > 0
+      )
+      : undefined;
+
+    const allowedWriteParentPages = allowedWriteParentPagesEnv
+      ? allowedWriteParentPagesEnv.split(",").map((s) => s.trim()).filter((s) =>
+        s.length > 0
+      )
+      : undefined;
+
     // read-onlyモードの設定
     const readOnly = readOnlyEnv === "true";
 
@@ -33,6 +48,8 @@ export class ConfigManager {
       apiToken,
       allowedSpaces,
       readOnly,
+      allowedReadParentPages,
+      allowedWriteParentPages,
     };
   }
 
@@ -53,6 +70,18 @@ export class ConfigManager {
       console.error(`   許可スペース: ${config.allowedSpaces.join(", ")}`);
     } else {
       console.error("   スペース制限: なし");
+    }
+
+    if (config.allowedReadParentPages && config.allowedReadParentPages.length > 0) {
+      console.error(`   読み取り許可親ページ: ${config.allowedReadParentPages.join(", ")}`);
+    } else {
+      console.error("   読み取り親ページ制限: なし");
+    }
+
+    if (config.allowedWriteParentPages && config.allowedWriteParentPages.length > 0) {
+      console.error(`   書き込み許可親ページ: ${config.allowedWriteParentPages.join(", ")}`);
+    } else {
+      console.error("   書き込み親ページ制限: なし");
     }
 
     if (config.readOnly) {
@@ -78,6 +107,12 @@ export class ConfigManager {
       "- CONFLUENCE_ALLOWED_SPACES: 許可するスペースキー（カンマ区切り）",
     );
     console.error(
+      "- CONFLUENCE_ALLOWED_READ_PARENT_PAGES: 読み取り許可ページID（カンマ区切り）",
+    );
+    console.error(
+      "- CONFLUENCE_ALLOWED_WRITE_PARENT_PAGES: 書き込み許可ページID（カンマ区切り）",
+    );
+    console.error(
       "- CONFLUENCE_READ_ONLY: 読み取り専用モード（'true' で有効）",
     );
     console.error("");
@@ -88,6 +123,8 @@ export class ConfigManager {
     console.error('export CONFLUENCE_EMAIL="your-email@example.com"');
     console.error('export CONFLUENCE_API_TOKEN="your-api-token"');
     console.error('export CONFLUENCE_ALLOWED_SPACES="TEAM,PROJECT"');
+    console.error('export CONFLUENCE_ALLOWED_READ_PAGES="12345,67890"');
+    console.error('export CONFLUENCE_ALLOWED_WRITE_PAGES="12345"');
     console.error('export CONFLUENCE_READ_ONLY="false"');
   }
 }

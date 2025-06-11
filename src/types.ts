@@ -4,6 +4,8 @@ export interface ConfluenceConfig {
   apiToken: string;
   allowedSpaces?: string[]; // 許可されたスペースキーのリスト
   readOnly?: boolean; // read-onlyモード（書き込み操作を禁止）
+  allowedReadParentPages?: string[]; // 読み取り許可ページIDのリスト（これらのページ以下のみアクセス可能）
+  allowedWriteParentPages?: string[]; // 書き込み許可ページIDのリスト（これらのページ以下のみ作成・更新可能）
 }
 
 export interface ConfluencePage {
