@@ -102,21 +102,21 @@ export class ConfluenceService {
 
     if (exactMatch) {
       console.error(
-        `既存の親ページが見つかりました: "${parentTitle}" (ID: ${exactMatch.id})`,
+        `Existing parent page found: "${parentTitle}" (ID: ${exactMatch.id})`,
       );
       return exactMatch.id;
     }
 
     // 見つからない場合は新しく作成
     const defaultContent = parentContent ||
-      `<h1>${parentTitle}</h1><p>このページは自動生成された親ページです。</p>`;
+      `<h1>${parentTitle}</h1><p>This page is an automatically generated parent page.</p>`;
     const newPage = await this.createPage(
       spaceKey,
       parentTitle,
       defaultContent,
     );
     console.error(
-      `新しい親ページを作成しました: "${parentTitle}" (ID: ${newPage.id})`,
+      `New parent page created: "${parentTitle}" (ID: ${newPage.id})`,
     );
 
     return newPage.id;
