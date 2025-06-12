@@ -19,7 +19,7 @@ export class ConfigManager {
 
     if (!baseUrl || !email || !apiToken) {
       throw new Error(
-        "必須の環境変数が設定されていません。CONFLUENCE_BASE_URL, CONFLUENCE_EMAIL, CONFLUENCE_API_TOKEN を設定してください。",
+        "Required environment variables are not set; set CONFLUENCE_BASE_URL, CONFLUENCE_EMAIL, and CONFLUENCE_API_TOKEN.",
       );
     }
 
@@ -67,23 +67,23 @@ export class ConfigManager {
     console.error(
       `   API Token: ${
         config.apiToken.substring(0, 8)
-      }... (${config.apiToken.length} 文字)`,
+      }... (${config.apiToken.length} characters)`,
     );
 
     if (config.allowedSpaces && config.allowedSpaces.length > 0) {
-      console.error(`   許可スペース: ${config.allowedSpaces.join(", ")}`);
+      console.error(`   Allowed Spaces: ${config.allowedSpaces.join(", ")}`);
     } else {
-      console.error("   スペース制限: なし");
+      console.error("   Space Restrictions: None");
     }
 
     if (
       config.allowedReadParentPages && config.allowedReadParentPages.length > 0
     ) {
       console.error(
-        `   読み取り許可親ページ: ${config.allowedReadParentPages.join(", ")}`,
+        `   Allowed Read Parent Pages: ${config.allowedReadParentPages.join(", ")}`,
       );
     } else {
-      console.error("   読み取り親ページ制限: なし");
+      console.error("   Allowed Read Parent Pages: None");
     }
 
     if (
@@ -91,16 +91,16 @@ export class ConfigManager {
       config.allowedWriteParentPages.length > 0
     ) {
       console.error(
-        `   書き込み許可親ページ: ${config.allowedWriteParentPages.join(", ")}`,
+        `   Allowed Write Parent Pages: ${config.allowedWriteParentPages.join(", ")}`,
       );
     } else {
-      console.error("   書き込み親ページ制限: なし");
+      console.error("   Allowed Write Parent Pages: None");
     }
 
     if (config.readOnly) {
-      console.error("   モード: 読み取り専用");
+      console.error("   Mode: Read-Only");
     } else {
-      console.error("   モード: 読み書き可能");
+      console.error("   Mode: Read-Write");
     }
   }
 
@@ -108,28 +108,28 @@ export class ConfigManager {
    * 環境変数の設定例を表示
    */
   static showConfigurationHelp(): void {
-    console.error("❌ 環境変数が不足しています。以下の設定が必要です:");
+    console.error("❌ Required environment variables are not set; set the following:");
     console.error("");
-    console.error("必須:");
-    console.error("- CONFLUENCE_BASE_URL: Confluence インスタンスの URL");
-    console.error("- CONFLUENCE_EMAIL: Confluence アカウントのメール");
-    console.error("- CONFLUENCE_API_TOKEN: Confluence API トークン");
+    console.error("Required:");
+    console.error("- CONFLUENCE_BASE_URL: Confluence instance URL");
+    console.error("- CONFLUENCE_EMAIL: Confluence account email");
+    console.error("- CONFLUENCE_API_TOKEN: Confluence API token");
     console.error("");
-    console.error("オプション:");
+    console.error("Optional:");
     console.error(
-      "- CONFLUENCE_ALLOWED_SPACES: 許可するスペースキー（カンマ区切り）",
+      "- CONFLUENCE_ALLOWED_SPACES: Allowed space keys (comma-separated)",
     );
     console.error(
-      "- CONFLUENCE_ALLOWED_READ_PARENT_PAGES: 読み取り許可ページID（カンマ区切り）",
+      "- CONFLUENCE_ALLOWED_READ_PARENT_PAGES: Allowed read parent page IDs (comma-separated)",
     );
     console.error(
-      "- CONFLUENCE_ALLOWED_WRITE_PARENT_PAGES: 書き込み許可ページID（カンマ区切り）",
+      "- CONFLUENCE_ALLOWED_WRITE_PARENT_PAGES: Allowed write parent page IDs (comma-separated)",
     );
     console.error(
-      "- CONFLUENCE_READ_ONLY: 読み取り専用モード（'true' で有効）",
+      "- CONFLUENCE_READ_ONLY: Read-only mode (enabled if 'true')",
     );
     console.error("");
-    console.error("設定例:");
+    console.error("Example configuration:");
     console.error(
       'export CONFLUENCE_BASE_URL="https://your-domain.atlassian.net"',
     );

@@ -68,6 +68,14 @@ deno task dev
   access restriction (e.g., `TEAM,PROJECT,DOCS`)
 - `CONFLUENCE_READ_ONLY`: Set to `'true'` to enable read-only mode (disables all
   write operations)
+- `CONFLUENCE_ALLOWED_PARENT_READ_PAGES`: Comma-separated list of page IDs that
+  can be read without parent page access validation (e.g., `12345,67890`). This
+  allows reading specific pages without checking parent permissions, useful for
+  public or shared pages.
+- `CONFLUENCE_ALLOWED_PARENT_WRITE_PAGES`: Comma-separated list of page IDs that
+  can be written to without parent page access validation (e.g., `12345,67890`).
+  This allows creating or updating specific pages without checking parent
+  permissions, useful for public or shared pages.
 
 ## MCP Tools
 
@@ -251,23 +259,22 @@ When space restrictions are enabled:
 ### Page Hierarchy Access Control
 
 The server implements advanced page hierarchy access control to prevent
-unauthorized access to child pages when parent pages are restricted:
+unauthorized access to child pages when parent pages are restricted.
+
+<!-- 環境変数を設定することで利用できます。 -->
+Set the following environment variables to enable this feature:
 
 ```bash
-# This feature is always enabled and requires no additional configuration
-# Access validation is performed automatically for all page operations
+# Allow reading specific pages without parent access validation
+export CONFLUENCE_ALLOWED_PARENT_READ_PAGES="12345,67890"
+# Allow writing specific pages without parent access validation
+export CONFLUENCE_ALLOWED_PARENT_WRITE_PAGES="12345,67890"
 ```
 
-**How it works:**
-
-- **Parent Permission Validation**: Before accessing any page, the system
-  validates that the user has access to all parent pages in the hierarchy
-- **Recursive Checking**: The system traverses up the page hierarchy to verify
-  permissions at each level
-- **Security Enhancement**: Prevents privilege escalation through child page
-  access when parent pages are restricted
-- **Graceful Error Handling**: Provides clear error messages when access is
-  denied due to parent page restrictions
+This feature ensures that users can only access child pages if they have the
+necessary permissions for all parent pages in the hierarchy. It prevents
+privilege escalation by ensuring that child pages cannot be accessed if their
+parent pages are restricted.
 
 **Access Control Flow:**
 
@@ -280,12 +287,10 @@ unauthorized access to child pages when parent pages are restricted:
 This feature ensures consistent access permissions across page hierarchies and
 maintains the principle of least privilege.
 
-### API Token Security
-
-- Use API tokens without scope restrictions for full compatibility
-- Scoped tokens may cause authentication issues with some API endpoints
-- Store tokens securely and rotate them regularly
-- Consider creating dedicated service accounts with minimal required permissions
+**API Details:**
+- `GET /wiki/api/v2/pages/{pageId}?expand=ancestors`
+  ([ref](https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/#api-pages-id-get)) -
+  Used to retrieve page ancestry information for hierarchy access validation
 
 ## Development and Testing
 
@@ -303,27 +308,6 @@ deno task debug-auth
 # Test with specific search query
 deno task test-api "your-search-term"
 ```
-
-## Content Creation Guidelines
-
-This server provides flexible page creation and management capabilities for
-Confluence:
-
-1. **Custom Page Creation**: Use `confluence_create_page` to create pages with
-   custom content using Confluence Storage Format for proper formatting.
-
-2. **Page Updates**: Use `confluence_update_page` to modify existing page
-   content while maintaining version control.
-
-3. **Proper Formatting**: Always use Confluence Storage Format with proper HTML
-   tags:
-   - Use `<h1>`, `<h2>` for headings instead of markdown `#`, `##`
-   - Use `<ul><li>` for unordered lists instead of markdown `*`, `-`
-   - Use `<strong>` for bold and `<em>` for italic
-   - Use `<ac:structured-macro ac:name="toc" />` for table of contents
-
-4. **Agent Integration**: Designed for use with MCP-compatible agents that can
-   create and maintain documentation in Confluence with proper formatting.
 
 ## Requirements
 

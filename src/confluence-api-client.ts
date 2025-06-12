@@ -38,7 +38,7 @@ export class ConfluenceAPIClient {
   validateSpaceAccess(spaceKey: string): void {
     if (!this.isSpaceAllowed(spaceKey)) {
       throw new Error(
-        `アクセスが許可されていないスペースです: ${spaceKey}. 許可されたスペース: ${
+        `Space to which access is not permitted: ${spaceKey}. Allowed spaces: ${
           this.config.allowedSpaces?.join(", ")
         }`,
       );
@@ -123,8 +123,8 @@ export class ConfluenceAPIClient {
     );
     if (!allowed) {
       throw new Error(
-        `読み取りアクセスが許可されていないページです: ${pageId}. 許可されたページ: ${
-          this.config.allowedReadParentPages?.join(", ") || "すべて"
+        `Read access is not permitted for this page: ${pageId}. Allowed pages: ${
+          this.config.allowedReadParentPages?.join(", ") || "all"
         }`,
       );
     }
@@ -142,8 +142,8 @@ export class ConfluenceAPIClient {
     );
     if (!allowed) {
       throw new Error(
-        `書き込みアクセスが許可されていないページです: ${pageId}. 許可されたページ: ${
-          this.config.allowedWriteParentPages?.join(", ") || "すべて"
+        `Write access is not permitted for this page: ${pageId}. Allowed pages: ${
+          this.config.allowedWriteParentPages?.join(", ") || "all"
         }`,
       );
     }
@@ -156,7 +156,7 @@ export class ConfluenceAPIClient {
   validateWriteOperation(): void {
     if (this.config.readOnly) {
       throw new Error(
-        "read-onlyモードが有効になっています。書き込み操作は実行できません。",
+        "Read-only mode is enabled; write operations are not allowed.",
       );
     }
   }
@@ -252,7 +252,7 @@ export class ConfluenceAPIClient {
     // ページが取得できた後、そのページのスペースが許可されているかチェック
     if (page.space && !this.isSpaceAllowed(page.space.key)) {
       throw new Error(
-        `アクセスが許可されていないスペースのページです: ${page.space.key}. 許可されたスペース: ${
+        `Space to which access is not permitted: ${page.space.key}. Allowed spaces: ${
           this.config.allowedSpaces?.join(", ")
         }`,
       );
@@ -308,13 +308,13 @@ export class ConfluenceAPIClient {
         if (space.homepage && space.homepage.id) {
           finalParentPageId = space.homepage.id;
           console.error(
-            `親ページが指定されていないため、スペースのホームページ (ID: ${finalParentPageId}) を親ページとして使用します`,
+            `Since no parent page is specified, the home page of the space (ID: ${finalParentPageId}) is used as the parent page.`,
           );
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.error(
-          `スペースのホームページ取得に失敗しました: ${message}. ルート直下にページを作成します`,
+          `Failed to retrieve the home page of the space: ${message}. Creating the page at the root level.`,
         );
       }
     }

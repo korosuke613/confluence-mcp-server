@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno run --allow-net --allow-env --allow-read
 
-import { ConfigManager } from "./src/config.ts";
-import { ConfluenceService } from "./src/confluence-service.ts";
-import { ConfluenceAPIClient } from "./src/confluence-api-client.ts";
+import { ConfigManager } from "../src/config.ts";
+import { ConfluenceService } from "../src/confluence-service.ts";
+import { ConfluenceAPIClient } from "../src/confluence-api-client.ts";
 
 // 認証テスト
 function testAuthentication(apiClient: ConfluenceAPIClient) {
